@@ -10,7 +10,7 @@
     {
       "dia": "Domingos",
       "hora": "10:00 y 19:00",
-      "detalle": "Servicio general y Barquitos para niños"
+      "detalle": "Servicio general y Jesus Children para niños"
     },
     {
       "dia": "Miércoles",
@@ -102,7 +102,7 @@
   ],
   "ministerios": [
     {
-      "nombre": "Barquitos",
+      "nombre": "Jesus Children",
       "edad": "Niños de 3 a 11 años",
       "texto": "Un espacio seguro donde los niños aprenden jugando mientras sus padres están en el servicio."
     },
