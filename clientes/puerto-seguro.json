@@ -1,0 +1,145 @@
+{
+  "nombre": "Iglesia Cristiana Puerto Seguro",
+  "titulo": "Un puerto seguro para tu familia",
+  "bajada": "Somos una comunidad cristiana que se reúne para adorar a Dios, aprender de su Palabra y acompañarnos en la vida real.",
+  "whatsapp": "5491100000000",
+  "email": "contacto@ejemplo.org",
+  "urlVivo": "https://www.youtube.com/",
+  "urlEnsenanzas": "https://www.youtube.com/",
+  "horarios": [
+    {
+      "dia": "Domingos",
+      "hora": "10:00 y 19:00",
+      "detalle": "Servicio general y Barquitos para niños"
+    },
+    {
+      "dia": "Miércoles",
+      "hora": "20:00",
+      "detalle": "Noche de oración"
+    },
+    {
+      "dia": "Viernes",
+      "hora": "20:30",
+      "detalle": "Reunión de jóvenes"
+    }
+  ],
+  "vision": "Ayudar a cada persona a conocer a Jesús, crecer junto a otros y servir a su ciudad con generosidad.",
+  "quienes": "Empezamos como un grupo de familias que se reunía en una casa. Hoy seguimos creyendo lo mismo: la fe se vive mejor en comunidad, con la puerta abierta y una mesa para todos.",
+  "pastores": {
+    "nombres": "Daniel y Lucía Herrera",
+    "iniciales": "DL",
+    "texto": "Daniel y Lucía lideran la iglesia junto a un equipo de servidores. Les apasiona enseñar la Biblia con palabras simples y acompañar a cada persona en su proceso, sin apuro y sin juicio."
+  },
+  "pasoTexto": "Si recién empiezas a caminar con Jesús, o quieres volver a hacerlo, queremos acompañarte. Escríbenos y te presentamos a alguien que te guíe en los primeros pasos.",
+  "ensenanzas": [
+    {
+      "titulo": "Cuando el mar se agita",
+      "pastor": "Pastor Daniel Herrera",
+      "fecha": "2026-09-27",
+      "resumen": "Cómo mantener la calma cuando todo a nuestro alrededor se mueve.",
+      "url": "https://www.youtube.com/"
+    },
+    {
+      "titulo": "Anclas para la semana",
+      "pastor": "Pastora Lucía Herrera",
+      "fecha": "2026-09-20",
+      "resumen": "Tres hábitos sencillos que sostienen la fe en los días comunes.",
+      "url": "https://www.youtube.com/"
+    },
+    {
+      "titulo": "La mesa está servida",
+      "pastor": "Pastor Daniel Herrera",
+      "fecha": "2026-09-13",
+      "resumen": "La invitación de Dios es abierta: lo que falta es sentarse.",
+      "url": "https://www.youtube.com/"
+    },
+    {
+      "titulo": "Perdonar para avanzar",
+      "pastor": "Pastora Lucía Herrera",
+      "fecha": "2026-09-06",
+      "resumen": "Soltar el rencor no cambia el pasado, pero libera el futuro.",
+      "url": "https://www.youtube.com/"
+    }
+  ],
+  "eventos": [
+    {
+      "titulo": "Noche de alabanza",
+      "fecha": "2026-10-17",
+      "hora": "19:30",
+      "lugar": "Sede central"
+    },
+    {
+      "titulo": "Jornada de ayuda comunitaria",
+      "fecha": "2026-10-24",
+      "hora": "09:00",
+      "lugar": "Barrio Norte"
+    },
+    {
+      "titulo": "Retiro de matrimonios",
+      "fecha": "2026-11-07",
+      "hora": "Todo el día",
+      "lugar": "Quinta Los Sauces"
+    },
+    {
+      "titulo": "Bautismos",
+      "fecha": "2026-11-21",
+      "hora": "11:00",
+      "lugar": "Sede central"
+    }
+  ],
+  "ministerios": [
+    {
+      "nombre": "Barquitos",
+      "edad": "Niños de 3 a 11 años",
+      "texto": "Un espacio seguro donde los niños aprenden jugando mientras sus padres están en el servicio."
+    },
+    {
+      "nombre": "Faro",
+      "edad": "Jóvenes de 12 a 25 años",
+      "texto": "Reuniones, deporte y música para una generación que quiere vivir su fe sin disfraz."
+    },
+    {
+      "nombre": "Ancla",
+      "edad": "Matrimonios y familias",
+      "texto": "Encuentros y cursos para fortalecer el hogar con herramientas prácticas."
+    },
+    {
+      "nombre": "Red",
+      "edad": "Grupos en casas",
+      "texto": "Pequeños grupos que se juntan durante la semana para conversar, orar y cuidarse."
+    }
+  ],
+  "ofrendas": {
+    "texto": "Cada ofrenda sostiene la obra de la iglesia y ayuda a las personas que nos rodean. Damos con alegría y sin presión.",
+    "mercadopago": "https://www.mercadopago.com.ar/",
+    "alias": "puertoseguro.iglesia",
+    "titular": "Iglesia Cristiana Puerto Seguro",
+    "banco": "Banco de ejemplo"
+  },
+  "sedes": [
+    {
+      "nombre": "Sede central",
+      "direccion": "Av. Ejemplo 1234, Ciudad",
+      "horarios": "Domingos 10:00 y 19:00"
+    },
+    {
+      "nombre": "Sede Norte",
+      "direccion": "Calle Muestra 567, Barrio Norte",
+      "horarios": "Domingos 11:00"
+    }
+  ],
+  "redes": [
+    {
+      "nombre": "Instagram",
+      "url": "https://www.instagram.com/"
+    },
+    {
+      "nombre": "YouTube",
+      "url": "https://www.youtube.com/"
+    },
+    {
+      "nombre": "Facebook",
+      "url": "https://www.facebook.com/"
+    }
+  ]
+}

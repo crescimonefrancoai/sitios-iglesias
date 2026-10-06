@@ -1,0 +1,8 @@
+{
+  "name": "agente-sitios",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.110.0"
+  }
+}

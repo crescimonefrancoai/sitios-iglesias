@@ -1,0 +1,614 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="__DESCRIPCION__">
+<title>__NOMBRE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   PALETA: se cambia por cliente (modo claro y modo oscuro)
+   ========================================================== */
+:root {
+  --hondo: #12363F;
+  --hondo-profundo: #0C262D;
+  --marea: #2B6B73;
+  --lampara: #F0B429;
+  --lampara-texto: #12363F;
+  --sal: #F8FAF9;
+  --espuma: #E3EFEC;
+  --tinta: #17292D;
+  --suave: #4A6065;
+  --linea: #C9D9D6;
+  --foco: #1F5C64;
+  --panel: #12363F;
+  --panel-texto: #F2F7F6;
+  --serif: "Young Serif", Georgia, "Times New Roman", serif;
+  --sans: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --sal: #0D1C20;
+    --espuma: #13282D;
+    --tinta: #E6EFED;
+    --suave: #9FB6B3;
+    --linea: #25414A;
+    --marea: #7FC0C8;
+    --foco: #F0B429;
+    --panel: #1A4550;
+  }
+}
+:root[data-theme="dark"] {
+  --sal: #0D1C20;
+  --espuma: #13282D;
+  --tinta: #E6EFED;
+  --suave: #9FB6B3;
+  --linea: #25414A;
+  --marea: #7FC0C8;
+  --foco: #F0B429;
+  --panel: #1A4550;
+}
+
+/* ==========================================================
+   BASE
+   ========================================================== */
+:root {
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+html {
+  background: var(--hondo-profundo);
+  scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 4.5rem);
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+*, *::before, *::after { box-sizing: inherit; }
+body {
+  margin: 0;
+  background: var(--sal);
+  color: var(--tinta);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; line-height: 1.12; margin: 0; }
+h2 { font-size: clamp(1.9rem, 4.2vw, 2.9rem); }
+h3 { font-size: 1.35rem; }
+p { margin: 0; }
+ul, ol, dl, dd { margin: 0; padding: 0; list-style: none; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
+.barra :focus-visible, .hero :focus-visible, .panel--fuerte :focus-visible, .pie :focus-visible { outline-color: var(--lampara); }
+
+.contenedor { width: min(72rem, 100% - 2.5rem); margin-inline: auto; }
+.seccion { padding-block: clamp(3.5rem, 8vw, 6.5rem); }
+.seccion--espuma { background: var(--espuma); }
+.texto { max-width: 62ch; }
+.suave { color: var(--suave); }
+.cabecera-seccion { display: flex; justify-content: space-between; align-items: end; gap: 1.5rem; flex-wrap: wrap; margin-bottom: 2rem; }
+
+.saltar {
+  position: absolute; left: 1rem; top: -4rem; z-index: 50;
+  background: var(--lampara); color: var(--lampara-texto);
+  padding: .6rem 1rem; border-radius: .5rem; font-weight: 700;
+}
+.saltar:focus { top: calc(env(safe-area-inset-top, 0px) + .75rem); }
+
+.boton {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: .8rem 1.5rem; border-radius: 999px;
+  font: 700 1rem/1.2 var(--sans); text-decoration: none; cursor: pointer;
+  border: 2px solid transparent;
+}
+.boton--lampara { background: var(--lampara); color: var(--lampara-texto); }
+.boton--lampara:hover { background: #F7C54F; }
+.boton--linea { border-color: currentColor; background: transparent; color: inherit; }
+.boton--linea:hover { background: rgba(255,255,255,.1); }
+.boton--marea { background: var(--marea); color: #fff; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .boton--marea { color: #0D1C20; }
+}
+:root[data-theme="dark"] .boton--marea { color: #0D1C20; }
+
+/* ==========================================================
+   BARRA DE NAVEGACIÓN
+   ========================================================== */
+.barra {
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
+  background: var(--hondo-profundo); color: #F2F7F6;
+}
+.barra__fila { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 4rem; }
+.marca { display: flex; align-items: center; gap: .65rem; text-decoration: none; font-family: var(--serif); font-size: 1.15rem; }
+.marca svg { width: 1.6rem; height: 1.6rem; flex: none; }
+.menu-boton {
+  display: none; background: transparent; color: inherit; cursor: pointer;
+  border: 1.5px solid rgba(242,247,246,.5); border-radius: 999px;
+  padding: .45rem 1rem; font: 700 .95rem var(--sans);
+}
+.menu { display: flex; align-items: center; gap: 1.75rem; }
+.menu ul { display: flex; gap: 1.5rem; }
+.menu a:not(.boton) { text-decoration: none; font-weight: 500; padding-block: .5rem; }
+.menu a:not(.boton):hover { text-decoration: underline; text-underline-offset: 6px; text-decoration-color: var(--lampara); }
+.menu .boton { padding: .55rem 1.2rem; }
+
+@media (max-width: 62rem) {
+  .menu-boton { display: inline-block; }
+  .menu {
+    display: none; position: absolute; left: 0; right: 0; top: 100%;
+    flex-direction: column; align-items: stretch; gap: 1rem;
+    background: var(--hondo-profundo); padding: 1rem 1.25rem 1.5rem;
+    border-top: 1px solid rgba(242,247,246,.15);
+  }
+  .menu.abierto { display: flex; }
+  .menu ul { flex-direction: column; gap: .25rem; }
+  .menu a:not(.boton) { display: block; padding-block: .7rem; font-size: 1.1rem; }
+}
+
+/* ==========================================================
+   INICIO
+   ========================================================== */
+.hero {
+  position: relative; overflow: hidden;
+  background: var(--hondo-profundo); color: #F2F7F6;
+  padding: clamp(3rem, 9vw, 6.5rem) 0 clamp(6.5rem, 13vw, 10rem);
+}
+.hero__contenido { position: relative; z-index: 2; }
+.hero h1 { font-size: clamp(2.5rem, 7.2vw, 5.2rem); max-width: 15ch; }
+.hero__bajada { margin-top: 1.5rem; max-width: 50ch; font-size: clamp(1.1rem, 2.2vw, 1.3rem); color: rgba(242,247,246,.85); }
+.horarios {
+  margin-top: 2.75rem; max-width: 48rem;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: 1.5rem 2.5rem;
+}
+.horario { border-left: 3px solid var(--lampara); padding-left: 1rem; }
+.horario dt { font-size: .95rem; color: rgba(242,247,246,.75); }
+.horario dd { display: flex; flex-direction: column; }
+.horario strong { font-family: var(--serif); font-weight: 400; font-size: 1.7rem; line-height: 1.2; }
+.horario span { font-size: .95rem; color: rgba(242,247,246,.75); }
+.hero__acciones { margin-top: 2.5rem; display: flex; flex-wrap: wrap; gap: .85rem; }
+
+.faro { position: absolute; right: -1rem; bottom: 0; height: 100%; width: min(72%, 560px); z-index: 1; overflow: visible; pointer-events: none; }
+.haz { transform-origin: 300px 165px; animation: barrido 9s ease-in-out infinite alternate; }
+@keyframes barrido { from { transform: rotate(-4deg); } to { transform: rotate(4deg); } }
+@media (prefers-reduced-motion: reduce) { .haz { animation: none; } }
+@media (max-width: 40rem) { .faro { opacity: .55; width: 90%; } }
+
+.ola { position: absolute; left: 0; bottom: -1px; width: 100%; height: clamp(40px, 7vw, 90px); z-index: 3; display: block; }
+.ola path { fill: var(--sal); }
+
+/* ==========================================================
+   NOSOTROS
+   ========================================================== */
+.vision { display: grid; grid-template-columns: 1fr 1.4fr; gap: 2rem clamp(2rem, 6vw, 5rem); align-items: start; }
+.vision__frase { font-size: clamp(1.25rem, 2.4vw, 1.6rem); line-height: 1.45; }
+.vision__mas { margin-top: 1.25rem; }
+@media (max-width: 52rem) { .vision { grid-template-columns: 1fr; } }
+
+.pastores { display: grid; grid-template-columns: minmax(0, 20rem) 1fr; gap: 2rem clamp(2rem, 6vw, 5rem); align-items: center; }
+.arco {
+  aspect-ratio: 4 / 5; width: 100%;
+  border-radius: 999px 999px 0 0; background: var(--espuma);
+  display: grid; place-items: center; align-content: center; gap: .5rem;
+  color: var(--marea); border: 1px solid var(--linea);
+}
+.seccion--espuma .arco { background: var(--sal); }
+.arco b { font-family: var(--serif); font-weight: 400; font-size: 4rem; }
+.arco small { color: var(--suave); font-size: .85rem; }
+.pastores h2 { margin-bottom: 1rem; }
+.pastores .nombres { font-family: var(--serif); font-size: 1.5rem; color: var(--marea); margin-bottom: 1rem; }
+@media (max-width: 52rem) { .pastores { grid-template-columns: 1fr; } .arco { max-width: 16rem; } }
+
+/* ==========================================================
+   SIGUIENTE PASO Y ORACIÓN
+   ========================================================== */
+.pasos { display: grid; grid-template-columns: 5fr 7fr; gap: 1.5rem; }
+.panel { border-radius: 1.5rem; padding: clamp(1.75rem, 4vw, 2.75rem); }
+.panel h2 { font-size: clamp(1.7rem, 3.4vw, 2.3rem); margin-bottom: 1rem; }
+.panel--fuerte { background: var(--panel); color: var(--panel-texto); display: flex; flex-direction: column; align-items: flex-start; gap: 1.5rem; }
+.panel--fuerte p { color: rgba(242,247,246,.88); }
+.panel--linea { border: 1.5px solid var(--linea); }
+.campo { display: block; margin-top: 1rem; }
+.campo span { display: block; font-weight: 700; font-size: .95rem; margin-bottom: .35rem; }
+.campo input, .campo textarea {
+  width: 100%; font: inherit; color: var(--tinta); background: var(--sal);
+  border: 1.5px solid var(--linea); border-radius: .75rem; padding: .75rem .9rem;
+}
+.campo textarea { min-height: 7rem; resize: vertical; }
+.panel--linea .boton { margin-top: 1.25rem; }
+@media (max-width: 52rem) { .pasos { grid-template-columns: 1fr; } }
+
+/* ==========================================================
+   ENSEÑANZAS
+   ========================================================== */
+.ens { border-bottom: 1px solid var(--linea); }
+.ens a {
+  display: grid; grid-template-columns: 8.5rem 1fr auto; gap: .5rem 2rem; align-items: baseline;
+  padding: 1.6rem 0; border-top: 1px solid var(--linea); text-decoration: none;
+}
+.ens time { color: var(--suave); font-size: .95rem; }
+.ens h3 { font-size: clamp(1.3rem, 2.6vw, 1.7rem); }
+.ens p { margin-top: .4rem; color: var(--suave); max-width: 58ch; }
+.ens .quien { margin-top: .5rem; font-size: .95rem; font-weight: 700; }
+.ens .ver { color: var(--marea); font-weight: 700; white-space: nowrap; }
+.ens a:hover h3 { color: var(--marea); text-decoration: underline; text-underline-offset: 5px; }
+@media (max-width: 46rem) { .ens a { grid-template-columns: 1fr; } }
+
+/* ==========================================================
+   EVENTOS
+   ========================================================== */
+.eventos { display: grid; grid-template-columns: repeat(auto-fit, minmax(15.5rem, 1fr)); gap: 2.25rem 2rem; }
+.evento { border-top: 4px solid var(--marea); padding-top: 1rem; }
+.evento .dia { font-family: var(--serif); font-size: 3.4rem; line-height: 1; color: var(--marea); }
+.evento .mes { font-weight: 700; margin-top: .15rem; }
+.evento h3 { margin-top: 1rem; }
+.evento p { margin-top: .35rem; color: var(--suave); font-size: .98rem; }
+.vacio { color: var(--suave); }
+
+/* ==========================================================
+   MINISTERIOS
+   ========================================================== */
+.ministerios { display: grid; grid-template-columns: repeat(auto-fit, minmax(13.5rem, 1fr)); gap: 2rem; }
+.ministerio h3 { color: var(--marea); }
+.ministerio .edad { font-size: .92rem; font-weight: 700; margin-top: .3rem; }
+.ministerio p:last-child { margin-top: .6rem; color: var(--suave); }
+
+/* ==========================================================
+   OFRENDAS
+   ========================================================== */
+.ofrendas { display: grid; grid-template-columns: 1fr 1.2fr; gap: 2rem clamp(2rem, 6vw, 5rem); align-items: start; }
+.ofrendas h2 { margin-bottom: 1rem; }
+.formas { display: grid; gap: 1.25rem; }
+.forma { padding-bottom: 1.25rem; border-bottom: 1px solid var(--linea); }
+.forma:last-child { border-bottom: 0; padding-bottom: 0; }
+.forma h3 { font-size: 1.2rem; margin-bottom: .35rem; }
+.datos { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-top: .5rem; }
+.datos code { font: 700 1rem var(--sans); background: var(--sal); border: 1px solid var(--linea); border-radius: .5rem; padding: .35rem .7rem; overflow-wrap: anywhere; }
+.copiar { font: 700 .95rem var(--sans); background: transparent; color: var(--marea); border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; padding: .35rem 0; }
+@media (max-width: 52rem) { .ofrendas { grid-template-columns: 1fr; } }
+
+/* ==========================================================
+   SEDES Y CONTACTO
+   ========================================================== */
+.sedes { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 2rem; }
+.sede h3 { margin-bottom: .4rem; }
+.sede p { color: var(--suave); }
+.sede .horas { color: var(--tinta); font-weight: 700; margin-top: .5rem; }
+.sede a { display: inline-block; margin-top: .75rem; color: var(--marea); font-weight: 700; }
+.contacto { margin-top: 3.5rem; padding-top: 2.5rem; border-top: 1px solid var(--linea); display: flex; flex-wrap: wrap; justify-content: space-between; gap: 1.5rem; align-items: center; }
+.contacto h3 { font-size: 1.5rem; margin-bottom: .35rem; }
+.contacto__datos { display: flex; flex-wrap: wrap; gap: .85rem; align-items: center; }
+
+/* ==========================================================
+   PIE
+   ========================================================== */
+.pie { background: var(--hondo-profundo); color: #F2F7F6; padding-block: 2.5rem; }
+.pie__fila { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem 2rem; }
+.pie ul { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
+.pie a { text-underline-offset: 4px; }
+.pie small { color: rgba(242,247,246,.7); }
+</style>
+</head>
+<body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="marca" href="#inicio" aria-label="Ir al inicio">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><path d="M12 12h8l2 17H10z" fill="#F2F7F6"/><rect x="12.5" y="5" width="7" height="7" fill="#F0B429"/><path d="M11 5h10l-5-4z" fill="#F2F7F6"/></svg>
+      <span id="marca-nombre"></span>
+    </a>
+    <button class="menu-boton" id="menu-boton" aria-expanded="false" aria-controls="menu">Menú</button>
+    <nav class="menu" id="menu" aria-label="Principal">
+      <ul>
+        <li><a href="#inicio">Inicio</a></li>
+        <li><a href="#quienes">Nosotros</a></li>
+        <li><a href="#ensenanzas">Enseñanzas</a></li>
+        <li><a href="#eventos">Eventos</a></li>
+        <li><a href="#ofrendas">Ofrendas</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+      </ul>
+      <a class="boton boton--lampara" id="btn-vivo" target="_blank" rel="noopener">Ver en vivo</a>
+    </nav>
+  </div>
+</header>
+
+<main id="contenido">
+
+  <!-- INICIO -->
+  <section class="hero" id="inicio">
+    <svg class="faro" viewBox="0 0 400 600" preserveAspectRatio="xMaxYMax meet" aria-hidden="true">
+      <defs>
+        <linearGradient id="hazI" gradientUnits="userSpaceOnUse" x1="300" y1="0" x2="-700" y2="0">
+          <stop offset="0" stop-color="#F0B429" stop-opacity=".42"/>
+          <stop offset="1" stop-color="#F0B429" stop-opacity="0"/>
+        </linearGradient>
+        <linearGradient id="hazD" gradientUnits="userSpaceOnUse" x1="300" y1="0" x2="1300" y2="0">
+          <stop offset="0" stop-color="#F0B429" stop-opacity=".42"/>
+          <stop offset="1" stop-color="#F0B429" stop-opacity="0"/>
+        </linearGradient>
+      </defs>
+      <g class="haz">
+        <polygon points="300,165 -700,85 -700,245" fill="url(#hazI)"/>
+        <polygon points="300,165 1300,85 1300,245" fill="url(#hazD)"/>
+      </g>
+      <polygon points="180,600 235,540 300,556 380,528 430,600" fill="#143B45"/>
+      <polygon points="270,200 330,200 345,570 255,570" fill="#1C4954"/>
+      <polygon points="267.5,260 332.5,260 334.2,300 265.8,300" fill="#2E6B78"/>
+      <polygon points="263.3,360 336.7,360 338.3,400 261.7,400" fill="#2E6B78"/>
+      <polygon points="259.2,460 340.8,460 342.5,500 257.5,500" fill="#2E6B78"/>
+      <rect x="262" y="190" width="76" height="10" fill="#17414B"/>
+      <circle cx="300" cy="165" r="42" fill="#F0B429" opacity=".16"/>
+      <rect x="278" y="140" width="44" height="50" rx="3" fill="#F0B429"/>
+      <path d="M300 140v50M289 140v50M311 140v50" stroke="#17414B" stroke-width="2"/>
+      <polygon points="270,140 330,140 300,112" fill="#17414B"/>
+      <circle cx="300" cy="106" r="4" fill="#17414B"/>
+    </svg>
+
+    <div class="contenedor hero__contenido">
+      <h1 id="h-titulo"></h1>
+      <p class="hero__bajada" id="h-bajada"></p>
+      <dl class="horarios" id="horarios"></dl>
+      <div class="hero__acciones">
+        <a class="boton boton--lampara" href="#sedes">Cómo llegar</a>
+        <a class="boton boton--linea" href="#siguiente-paso">Soy nuevo en la fe</a>
+      </div>
+    </div>
+
+    <svg class="ola" viewBox="0 0 1440 120" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M0,60 C240,110 480,10 720,60 C960,110 1200,10 1440,60 L1440,120 L0,120 Z"/>
+    </svg>
+  </section>
+
+  <!-- QUIÉNES SOMOS -->
+  <section class="seccion" id="quienes">
+    <div class="contenedor vision">
+      <h2>Nuestra visión</h2>
+      <div>
+        <p class="vision__frase" id="vision"></p>
+        <p class="vision__mas texto suave" id="quienes-texto"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PASTORES -->
+  <section class="seccion seccion--espuma" id="pastores">
+    <div class="contenedor pastores">
+      <div class="arco" role="img" aria-label="Espacio para la foto de los pastores">
+        <b id="p-iniciales"></b>
+        <small>Foto de los pastores</small>
+      </div>
+      <div>
+        <h2>Nuestros pastores</h2>
+        <p class="nombres" id="p-nombres"></p>
+        <p class="texto" id="p-texto"></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SIGUIENTE PASO Y ORACIÓN -->
+  <section class="seccion" id="siguiente-paso">
+    <div class="contenedor pasos">
+      <div class="panel panel--fuerte">
+        <h2>¿Eres nuevo en la fe?</h2>
+        <p id="paso-texto"></p>
+        <a class="boton boton--lampara" id="paso-boton" target="_blank" rel="noopener">Quiero dar mi siguiente paso</a>
+      </div>
+      <div class="panel panel--linea">
+        <h2>¿Necesitas oración?</h2>
+        <p class="texto suave">Cuéntanos tu petición. Nuestro equipo de intercesión orará por ti.</p>
+        <label class="campo"><span>Tu nombre (opcional)</span><input type="text" id="or-nombre" autocomplete="given-name"></label>
+        <label class="campo"><span>Tu petición</span><textarea id="or-texto"></textarea></label>
+        <a class="boton boton--marea" id="or-enviar" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ENSEÑANZAS -->
+  <section class="seccion seccion--espuma" id="ensenanzas">
+    <div class="contenedor">
+      <div class="cabecera-seccion">
+        <h2>Enseñanzas recientes</h2>
+        <a class="boton boton--linea" id="ens-todas" target="_blank" rel="noopener">Ver todas</a>
+      </div>
+      <ul class="ens" id="ens-lista"></ul>
+    </div>
+  </section>
+
+  <!-- EVENTOS -->
+  <section class="seccion" id="eventos">
+    <div class="contenedor">
+      <div class="cabecera-seccion"><h2>Próximos eventos</h2></div>
+      <div class="eventos" id="ev-lista"></div>
+    </div>
+  </section>
+
+  <!-- MINISTERIOS -->
+  <section class="seccion seccion--espuma" id="ministerios">
+    <div class="contenedor">
+      <div class="cabecera-seccion"><h2>Hay un lugar para cada edad</h2></div>
+      <div class="ministerios" id="min-lista"></div>
+    </div>
+  </section>
+
+  <!-- OFRENDAS -->
+  <section class="seccion" id="ofrendas">
+    <div class="contenedor ofrendas">
+      <div>
+        <h2>¿Deseas ofrendar?</h2>
+        <p class="texto suave" id="of-texto"></p>
+      </div>
+      <div class="formas" id="of-formas"></div>
+    </div>
+  </section>
+
+  <!-- SEDES Y CONTACTO -->
+  <section class="seccion seccion--espuma" id="sedes">
+    <div class="contenedor">
+      <div class="cabecera-seccion"><h2>Te esperamos</h2></div>
+      <div class="sedes" id="sedes-lista"></div>
+      <div class="contacto" id="contacto">
+        <div>
+          <h3>Escríbenos</h3>
+          <p class="suave">Respondemos por WhatsApp y por correo.</p>
+        </div>
+        <div class="contacto__datos">
+          <a class="boton boton--marea" id="c-whatsapp" target="_blank" rel="noopener">Abrir WhatsApp</a>
+          <a id="c-email"></a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <div class="contenedor pie__fila">
+    <small id="pie-copy"></small>
+    <ul id="pie-redes"></ul>
+  </div>
+</footer>
+
+<script>
+/* Los datos llegan desde clientes/<cliente>.json; los inserta agente/construir.mjs */
+const IGLESIA = /*__DATOS__*/null;
+
+/* ==========================================================
+   CÓDIGO DE LA PLANTILLA (no hace falta tocarlo)
+   ========================================================== */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const wa = (texto) => `https://wa.me/${IGLESIA.whatsapp}?text=${encodeURIComponent(texto)}`;
+const aFecha = (iso) => { const [a, m, d] = iso.split("-").map(Number); return new Date(a, m - 1, d); };
+
+document.title = IGLESIA.nombre;
+$("marca-nombre").textContent = IGLESIA.nombre;
+$("h-titulo").textContent = IGLESIA.titulo;
+$("h-bajada").textContent = IGLESIA.bajada;
+$("btn-vivo").href = IGLESIA.urlVivo;
+
+$("horarios").innerHTML = IGLESIA.horarios.map((h) =>
+  `<div class="horario"><dt>${esc(h.dia)}</dt><dd><strong>${esc(h.hora)}</strong><span>${esc(h.detalle)}</span></dd></div>`
+).join("");
+
+$("vision").textContent = IGLESIA.vision;
+$("quienes-texto").textContent = IGLESIA.quienes;
+$("p-iniciales").textContent = IGLESIA.pastores.iniciales;
+$("p-nombres").textContent = IGLESIA.pastores.nombres;
+$("p-texto").textContent = IGLESIA.pastores.texto;
+
+/* Siguiente paso y oración (se envían por WhatsApp, sin servidor) */
+$("paso-texto").textContent = IGLESIA.pasoTexto;
+$("paso-boton").href = wa("Hola, quiero dar mi siguiente paso en la fe.");
+const armarOracion = () => {
+  const nombre = $("or-nombre").value.trim();
+  const texto = $("or-texto").value.trim();
+  const mensaje = "Hola, quisiera enviar una petición de oración." +
+    (nombre ? `\nMi nombre: ${nombre}` : "") +
+    (texto ? `\nPetición: ${texto}` : "");
+  $("or-enviar").href = wa(mensaje);
+};
+$("or-nombre").addEventListener("input", armarOracion);
+$("or-texto").addEventListener("input", armarOracion);
+armarOracion();
+
+/* Enseñanzas */
+$("ens-todas").href = IGLESIA.urlEnsenanzas;
+const fmtLargo = new Intl.DateTimeFormat("es", { day: "numeric", month: "long", year: "numeric" });
+$("ens-lista").innerHTML = IGLESIA.ensenanzas.map((e) =>
+  `<li><a href="${esc(e.url)}" target="_blank" rel="noopener">
+     <time datetime="${esc(e.fecha)}">${fmtLargo.format(aFecha(e.fecha))}</time>
+     <div><h3>${esc(e.titulo)}</h3><p>${esc(e.resumen)}</p><p class="quien">${esc(e.pastor)}</p></div>
+     <span class="ver">Ver mensaje</span>
+   </a></li>`
+).join("");
+
+/* Eventos: solo se muestran los que todavía no pasaron */
+const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+const proximos = IGLESIA.eventos.filter((e) => aFecha(e.fecha) >= hoy).sort((a, b) => aFecha(a.fecha) - aFecha(b.fecha));
+const fmtMes = new Intl.DateTimeFormat("es", { month: "long" });
+const fmtDiaSemana = new Intl.DateTimeFormat("es", { weekday: "long" });
+$("ev-lista").innerHTML = proximos.length
+  ? proximos.map((e) => {
+      const f = aFecha(e.fecha);
+      return `<article class="evento">
+        <div class="dia">${f.getDate()}</div>
+        <div class="mes">${fmtMes.format(f)}</div>
+        <h3>${esc(e.titulo)}</h3>
+        <p>${fmtDiaSemana.format(f)}, ${esc(e.hora)}. ${esc(e.lugar)}</p>
+      </article>`;
+    }).join("")
+  : `<p class="vacio">Pronto publicaremos las próximas fechas.</p>`;
+
+/* Ministerios */
+$("min-lista").innerHTML = IGLESIA.ministerios.map((m) =>
+  `<article class="ministerio"><h3>${esc(m.nombre)}</h3><p class="edad">${esc(m.edad)}</p><p>${esc(m.texto)}</p></article>`
+).join("");
+
+/* Ofrendas */
+const of = IGLESIA.ofrendas;
+$("of-texto").textContent = of.texto;
+$("of-formas").innerHTML = `
+  <div class="forma">
+    <h3>Online</h3>
+    <p class="suave">Con tarjeta o dinero en cuenta, de forma segura.</p>
+    <div class="datos"><a class="boton boton--marea" href="${esc(of.mercadopago)}" target="_blank" rel="noopener">Ofrendar online</a></div>
+  </div>
+  <div class="forma">
+    <h3>Transferencia bancaria</h3>
+    <p class="suave">${esc(of.titular)}. ${esc(of.banco)}.</p>
+    <div class="datos"><code id="alias">${esc(of.alias)}</code><button class="copiar" id="copiar" type="button">Copiar alias</button></div>
+  </div>
+  <div class="forma">
+    <h3>En persona</h3>
+    <p class="suave">Durante los servicios, en el momento de las ofrendas.</p>
+  </div>`;
+$("copiar").addEventListener("click", () => {
+  const boton = $("copiar");
+  const listo = () => { boton.textContent = "Copiado"; setTimeout(() => (boton.textContent = "Copiar alias"), 2000); };
+  const respaldo = () => {
+    try {
+      const rango = document.createRange(); rango.selectNodeContents($("alias"));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rango);
+      document.execCommand("copy"); listo();
+    } catch (e) { /* si falla, queda seleccionado para copiar a mano */ }
+  };
+  try { navigator.clipboard.writeText(of.alias).then(listo, respaldo); } catch (e) { respaldo(); }
+});
+
+/* Sedes */
+$("sedes-lista").innerHTML = IGLESIA.sedes.map((s) =>
+  `<article class="sede">
+     <h3>${esc(s.nombre)}</h3>
+     <p>${esc(s.direccion)}</p>
+     <p class="horas">${esc(s.horarios)}</p>
+     <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.direccion)}" target="_blank" rel="noopener">Ver en el mapa</a>
+   </article>`
+).join("");
+
+/* Contacto y pie */
+$("c-whatsapp").href = wa("Hola, quisiera más información.");
+$("c-email").href = `mailto:${IGLESIA.email}`;
+$("c-email").textContent = IGLESIA.email;
+$("pie-copy").textContent = `© ${new Date().getFullYear()} ${IGLESIA.nombre}`;
+$("pie-redes").innerHTML = IGLESIA.redes.map((r) =>
+  `<li><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.nombre)}</a></li>`
+).join("");
+
+/* Menú en celulares */
+const botonMenu = $("menu-boton"), menu = $("menu");
+botonMenu.addEventListener("click", () => {
+  const abierto = menu.classList.toggle("abierto");
+  botonMenu.setAttribute("aria-expanded", String(abierto));
+});
+menu.addEventListener("click", (e) => {
+  if (e.target.closest("a")) { menu.classList.remove("abierto"); botonMenu.setAttribute("aria-expanded", "false"); }
+});
+</script>
+</body>
+</html>
