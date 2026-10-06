@@ -1,0 +1,59 @@
+name: Agente - pedir un cambio
+
+on:
+  workflow_dispatch:
+    inputs:
+      cliente:
+        description: "Cliente (nombre del archivo en clientes/, sin .json)"
+        required: true
+        type: string
+        default: puerto-seguro
+      pedido:
+        description: "Qué hay que cambiar, en palabras comunes"
+        required: true
+        type: string
+
+# Un pedido a la vez, para que dos cambios no se pisen
+concurrency:
+  group: cambios
+  cancel-in-progress: false
+
+jobs:
+  cambiar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      cambio: ${{ steps.agente.outputs.cambio }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --prefix agente --no-audit --no-fund
+      - id: agente
+        name: Ejecutar el agente
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLIENTE: ${{ inputs.cliente }}
+          PEDIDO: ${{ inputs.pedido }}
+        run: node agente/agente.mjs
+      - name: Guardar el cambio
+        if: steps.agente.outputs.cambio == 'si'
+        run: |
+          git config user.name "agente-sitios"
+          git config user.email "agente-sitios@users.noreply.github.com"
+          git add clientes
+          git commit -F "$RUNNER_TEMP/mensaje-commit.txt"
+          git push
+
+  publicar:
+    needs: cambiar
+    if: needs.cambiar.outputs.cambio == 'si'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publicar.yml

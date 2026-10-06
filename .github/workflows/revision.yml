@@ -1,0 +1,56 @@
+name: Revisión semanal
+
+on:
+  schedule:
+    - cron: "0 12 * * 1" # lunes 9:00 de Argentina
+  workflow_dispatch:
+
+concurrency:
+  group: cambios
+  cancel-in-progress: false
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+    outputs:
+      cambio: ${{ steps.guardar.outputs.cambio }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: revision
+        run: node agente/revision.mjs
+      - id: guardar
+        name: Guardar la limpieza
+        run: |
+          if git diff --quiet -- clientes; then
+            echo "cambio=no" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git config user.name "agente-sitios"
+          git config user.email "agente-sitios@users.noreply.github.com"
+          git add clientes
+          git commit -m "Revisión semanal: limpieza de eventos vencidos"
+          git push
+          echo "cambio=si" >> "$GITHUB_OUTPUT"
+      - name: Avisar lo que hay que revisar
+        if: steps.revision.outputs.avisos == 'si'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FECHA: ${{ steps.revision.outputs.fecha }}
+        run: gh issue create --title "Revisión de sitios $FECHA" --body-file "$RUNNER_TEMP/informe.md"
+
+  publicar:
+    needs: revisar
+    if: needs.revisar.outputs.cambio == 'si'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    uses: ./.github/workflows/publicar.yml
