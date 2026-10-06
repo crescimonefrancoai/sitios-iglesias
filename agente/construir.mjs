@@ -21,7 +21,7 @@ for (const cliente of listarClientes()) {
     continue;
   }
   /* "<" escapado para que ningún texto pueda cerrar la etiqueta <script> */
-  const json = JSON.stringify(datos).replace(/</g, "\\u003c").replace(/ /g, "\\u2028").replace(/ /g, "\\u2029");
+  const json = JSON.stringify(datos).replace(/</g, "\\u003c");
   const html = plantilla
     .replace("/*__DATOS__*/null", () => json)
     .replace("__NOMBRE__", () => escHtml(datos.nombre))
