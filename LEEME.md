@@ -60,3 +60,23 @@ Corre sola los lunes a las 9:00 (hora de Argentina). Quita los eventos que ya pa
 ## Agregar una iglesia
 
 Copiar `clientes/puerto-seguro.json` con otro nombre (minúsculas y guiones, por ejemplo `luz-del-valle.json`), cargar sus datos y subirlo. El sitio aparece en `/<ese-nombre>/`.
+
+Para que sus formularios guarden en la base de datos (ver más abajo), también hay que darla de alta en la base y poner su `churchId` en el archivo.
+
+## Base de datos y panel (Supabase)
+
+Una sola base de datos para todas las iglesias. Los formularios del sitio guardan ahí a quien se anota, y el panel muestra los datos.
+
+```
+base-de-datos/1-tablas.sql             Crea las tablas (una sola vez)
+base-de-datos/2-seguridad.sql          Reglas: cada iglesia ve solo lo suyo; el público solo puede anotarse
+base-de-datos/3-alta-puerto-seguro.sql Da de alta una iglesia y su usuario del panel
+plantilla/conexion.json                Dirección de la base y clave PÚBLICA (anon). Nunca la service_role
+plantilla/panel.html                   Panel de administración (se publica en /panel/)
+```
+
+- En el sitio, "¿Eres nuevo en la fe?" guarda en la tabla `people` (estado `prospect`) y "¿Necesitas oración?" en `prayer_requests`. Si `churchId` o `conexion.json` faltan, el sitio sigue funcionando por WhatsApp como antes.
+- El panel está en `https://<usuario>.github.io/<repositorio>/panel/`. Cada persona del equipo entra con su correo y contraseña de Supabase y ve solo los datos de su iglesia.
+- Los **eventos y enseñanzas** siguen saliendo del archivo JSON (los actualiza el agente). La base guarda a las personas.
+- Para dar de alta una iglesia nueva: generar un UUID, ejecutar un `alta-<cliente>.sql` equivalente al de Puerto Seguro, y poner el mismo UUID como `churchId` en `clientes/<cliente>.json`.
+- Que alguien asista a una iglesia es información sensible: el formulario exige aceptar el tratamiento de datos y la base guarda la fecha de aceptación (`consent_at`). Revisar la normativa de cada país donde se venda.

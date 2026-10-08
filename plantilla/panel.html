@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex, nofollow">
+<title>Panel de la iglesia</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;700&family=Young+Serif&display=swap" rel="stylesheet">
+<style>
+:root {
+  --hondo: #12363F; --hondo-profundo: #0C262D; --marea: #2B6B73; --lampara: #F0B429; --lampara-texto: #12363F;
+  --sal: #F8FAF9; --espuma: #E3EFEC; --tinta: #17292D; --suave: #4A6065; --linea: #C9D9D6; --foco: #1F5C64; --error: #B3321B; --ok: #1E6B45;
+  --serif: "Young Serif", Georgia, serif; --sans: "Figtree", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --sal: #0D1C20; --espuma: #13282D; --tinta: #E6EFED; --suave: #9FB6B3; --linea: #25414A; --marea: #7FC0C8; --foco: #F0B429; --error: #FF9C88; --ok: #7FD6A5; }
+}
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--hondo-profundo); }
+body { margin: 0; background: var(--sal); color: var(--tinta); font: 1rem/1.55 var(--sans); min-height: 100vh; padding-bottom: env(safe-area-inset-bottom, 0px); }
+h1, h2, h3 { font-family: var(--serif); font-weight: 400; margin: 0; line-height: 1.15; }
+p { margin: 0; }
+:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
+[hidden] { display: none !important; }
+.suave { color: var(--suave); }
+
+.boton { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; padding: .6rem 1.1rem; border-radius: 999px; font: 700 .95rem/1.2 var(--sans); cursor: pointer; text-decoration: none; border: 2px solid transparent; }
+.boton--marea { background: var(--marea); color: #fff; }
+.boton--lampara { background: var(--lampara); color: var(--lampara-texto); }
+.boton--linea { border-color: var(--linea); background: transparent; color: var(--tinta); }
+.boton--linea:hover { border-color: var(--marea); }
+.boton[disabled] { opacity: .6; cursor: wait; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .boton--marea { color: #0D1C20; } }
+
+input, select, textarea { font: inherit; color: var(--tinta); background: var(--sal); border: 1.5px solid var(--linea); border-radius: .65rem; padding: .55rem .75rem; width: 100%; }
+textarea { min-height: 6rem; resize: vertical; }
+label.campo { display: block; margin-top: .9rem; }
+label.campo > span { display: block; font-weight: 700; font-size: .9rem; margin-bottom: .3rem; }
+.aviso { margin-top: .9rem; font-weight: 700; }
+.aviso:empty { display: none; }
+.aviso--error { color: var(--error); }
+.aviso--ok { color: var(--ok); }
+
+/* Ingreso */
+.ingreso { min-height: 100vh; display: grid; place-items: center; padding: 1.25rem; background: var(--hondo-profundo); }
+.ingreso__caja { width: min(26rem, 100%); background: var(--sal); border-radius: 1.5rem; padding: 2rem 1.75rem; }
+.ingreso__caja h1 { font-size: 1.9rem; margin-bottom: .35rem; }
+.ingreso__caja .boton { width: 100%; margin-top: 1.25rem; }
+
+/* Panel */
+.barra { background: var(--hondo-profundo); color: #F2F7F6; position: sticky; top: 0; z-index: 10; }
+.barra__fila { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 3.75rem; width: min(72rem, 100% - 2rem); margin-inline: auto; }
+.barra h1 { font-size: 1.15rem; }
+.barra small { color: rgba(242,247,246,.75); display: block; font-family: var(--sans); font-size: .8rem; }
+.barra .boton--linea { color: #F2F7F6; border-color: rgba(242,247,246,.4); padding: .45rem .9rem; }
+.contenedor { width: min(72rem, 100% - 2rem); margin-inline: auto; padding-block: 1.5rem 4rem; }
+
+.pestanas { display: flex; gap: .5rem; margin-bottom: 1.25rem; flex-wrap: wrap; }
+.pestana { font: 700 .95rem var(--sans); background: transparent; color: var(--suave); border: 0; border-bottom: 3px solid transparent; padding: .5rem .25rem; margin-right: 1rem; cursor: pointer; }
+.pestana[aria-selected="true"] { color: var(--tinta); border-bottom-color: var(--lampara); }
+
+.resumen { display: grid; grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr)); gap: .75rem; margin-bottom: 1.25rem; }
+.dato { border: 1.5px solid var(--linea); border-radius: 1rem; padding: .75rem 1rem; background: transparent; text-align: left; font: inherit; color: inherit; cursor: pointer; }
+.dato b { display: block; font-family: var(--serif); font-weight: 400; font-size: 1.9rem; line-height: 1.1; }
+.dato span { color: var(--suave); font-size: .88rem; }
+.dato[aria-pressed="true"] { border-color: var(--marea); background: var(--espuma); }
+
+.herramientas { display: flex; flex-wrap: wrap; gap: .75rem; align-items: center; margin-bottom: 1rem; }
+.herramientas input[type="search"] { flex: 1 1 14rem; max-width: 24rem; }
+
+.tabla { width: 100%; border-collapse: collapse; }
+.tabla th { text-align: left; font-size: .82rem; color: var(--suave); font-weight: 700; padding: .5rem .6rem; border-bottom: 1.5px solid var(--linea); }
+.tabla td { padding: .7rem .6rem; border-bottom: 1px solid var(--linea); vertical-align: middle; }
+.tabla tr.fila { cursor: pointer; }
+.tabla tr.fila:hover td { background: var(--espuma); }
+.tabla select { padding: .35rem .5rem; width: auto; }
+.nombre { font-weight: 700; }
+.chico { font-size: .85rem; color: var(--suave); }
+.vacio { padding: 2rem 0; color: var(--suave); }
+@media (max-width: 46rem) {
+  .tabla thead { display: none; }
+  .tabla, .tabla tbody, .tabla tr, .tabla td { display: block; width: 100%; }
+  .tabla tr { padding: .75rem 0; border-bottom: 1px solid var(--linea); }
+  .tabla td { border: 0; padding: .15rem 0; }
+}
+
+.oracion { border: 1.5px solid var(--linea); border-radius: 1rem; padding: 1rem 1.25rem; margin-bottom: .85rem; }
+.oracion p.texto { margin-top: .5rem; white-space: pre-wrap; overflow-wrap: anywhere; }
+
+dialog { border: 0; border-radius: 1.25rem; padding: 1.5rem; width: min(34rem, calc(100% - 1.5rem)); background: var(--sal); color: var(--tinta); }
+dialog::backdrop { background: rgba(8, 24, 28, .65); }
+dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
+.dos { display: grid; grid-template-columns: 1fr 1fr; gap: 0 .85rem; }
+@media (max-width: 34rem) { .dos { grid-template-columns: 1fr; } }
+.acciones { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.25rem; }
+.meta { margin-top: 1rem; font-size: .88rem; color: var(--suave); }
+</style>
+</head>
+<body>
+
+<!-- INGRESO -->
+<main class="ingreso" id="vista-ingreso" hidden>
+  <form class="ingreso__caja" id="form-ingreso">
+    <h1>Panel de la iglesia</h1>
+    <p class="suave">Ingresa con el correo y la contraseña que te dieron.</p>
+    <label class="campo"><span>Correo</span><input type="email" id="in-email" autocomplete="username" required></label>
+    <label class="campo"><span>Contraseña</span><input type="password" id="in-clave" autocomplete="current-password" required></label>
+    <button class="boton boton--marea" type="submit" id="in-boton">Ingresar</button>
+    <p class="aviso aviso--error" id="in-aviso" role="alert"></p>
+  </form>
+</main>
+
+<!-- PANEL -->
+<div id="vista-panel" hidden>
+  <header class="barra">
+    <div class="barra__fila">
+      <h1 id="p-iglesia">Panel<small id="p-usuario"></small></h1>
+      <button class="boton boton--linea" id="btn-salir" type="button">Salir</button>
+    </div>
+  </header>
+
+  <div class="contenedor">
+    <div class="pestanas" role="tablist">
+      <button class="pestana" role="tab" id="tab-personas" aria-selected="true" type="button">Personas</button>
+      <button class="pestana" role="tab" id="tab-oraciones" aria-selected="false" type="button">Pedidos de oración</button>
+    </div>
+
+    <section id="sec-personas">
+      <div class="resumen" id="resumen"></div>
+      <div class="herramientas">
+        <input type="search" id="buscar" placeholder="Buscar por nombre, teléfono o correo" aria-label="Buscar personas">
+        <button class="boton boton--lampara" id="btn-nueva" type="button">+ Agregar persona</button>
+        <button class="boton boton--linea" id="btn-csv" type="button">Descargar lista (CSV)</button>
+        <button class="boton boton--linea" id="btn-actualizar" type="button">Actualizar</button>
+      </div>
+      <div id="lista-personas"></div>
+    </section>
+
+    <section id="sec-oraciones" hidden>
+      <div class="herramientas"><button class="boton boton--linea" id="btn-actualizar-or" type="button">Actualizar</button></div>
+      <div id="lista-oraciones"></div>
+    </section>
+  </div>
+</div>
+
+<!-- DETALLE / NUEVA PERSONA -->
+<dialog id="dlg-persona">
+  <form id="form-persona" method="dialog">
+    <h2 id="dp-titulo">Persona</h2>
+    <p class="chico" id="dp-sub"></p>
+    <div class="dos">
+      <label class="campo"><span>Nombre</span><input type="text" id="dp-nombre" maxlength="120" required></label>
+      <label class="campo"><span>Apellido</span><input type="text" id="dp-apellido" maxlength="120"></label>
+      <label class="campo"><span>Teléfono / WhatsApp</span><input type="tel" id="dp-telefono" maxlength="40"></label>
+      <label class="campo"><span>Correo</span><input type="email" id="dp-email" maxlength="160"></label>
+    </div>
+    <label class="campo"><span>Estado</span><select id="dp-estado"></select></label>
+    <label class="campo"><span>Notas del equipo</span><textarea id="dp-notas" maxlength="2000"></textarea></label>
+    <p class="meta" id="dp-meta"></p>
+    <p class="aviso" id="dp-aviso" role="alert"></p>
+    <div class="acciones">
+      <button class="boton boton--marea" type="submit" id="dp-guardar">Guardar</button>
+      <a class="boton boton--linea" id="dp-wa" target="_blank" rel="noopener" hidden>WhatsApp</a>
+      <a class="boton boton--linea" id="dp-mail" hidden>Correo</a>
+      <button class="boton boton--linea" type="button" id="dp-cerrar">Cerrar</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module">
+import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+/* Los datos de conexión los inserta agente/construir.mjs desde plantilla/conexion.json */
+const CONFIG = /*__SUPABASE__*/null;
+
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const ESTADOS = {
+  prospect: "Se anotó (aún no vino)",
+  visitor: "Visitante",
+  regular: "Asiste seguido",
+  member: "Miembro",
+  inactive: "Inactivo",
+};
+const fechaHora = new Intl.DateTimeFormat("es", { dateStyle: "medium", timeStyle: "short" });
+const hoyISO = () => new Date().toLocaleDateString("en-CA");
+
+if (!CONFIG) {
+  document.body.innerHTML = '<p style="padding:2rem;font-family:sans-serif">El panel todavía no está conectado a la base de datos. Falta completar plantilla/conexion.json.</p>';
+  throw new Error("Sin configuración");
+}
+
+const db = createClient(CONFIG.url, CONFIG.anonKey);
+let iglesiaId = null;
+let personas = [];
+let filtroEstado = "todos";
+let editando = null; /* persona abierta en el detalle, o null si es una nueva */
+
+/* ---------- Ingreso ---------- */
+function mostrar(vista) {
+  $("vista-ingreso").hidden = vista !== "ingreso";
+  $("vista-panel").hidden = vista !== "panel";
+}
+
+$("form-ingreso").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const boton = $("in-boton");
+  boton.disabled = true;
+  $("in-aviso").textContent = "";
+  const { error } = await db.auth.signInWithPassword({ email: $("in-email").value.trim(), password: $("in-clave").value });
+  boton.disabled = false;
+  if (error) { $("in-aviso").textContent = "Correo o contraseña incorrectos."; return; }
+  $("in-clave").value = "";
+  await iniciar();
+});
+
+$("btn-salir").addEventListener("click", async () => {
+  await db.auth.signOut();
+  personas = [];
+  mostrar("ingreso");
+});
+
+async function iniciar() {
+  const { data: sesion } = await db.auth.getSession();
+  if (!sesion.session) { mostrar("ingreso"); return; }
+  const uid = sesion.session.user.id;
+  const { data: staff, error } = await db.from("staff_users").select("church_id, full_name, role").eq("auth_id", uid).maybeSingle();
+  if (error || !staff) {
+    mostrar("ingreso");
+    $("in-aviso").textContent = "Tu usuario todavía no está asociado a ninguna iglesia. Avísale a quien administra el sistema.";
+    await db.auth.signOut();
+    return;
+  }
+  iglesiaId = staff.church_id;
+  const { data: iglesia } = await db.from("churches").select("name").eq("id", iglesiaId).maybeSingle();
+  $("p-iglesia").innerHTML = `${esc(iglesia?.name ?? "Panel")}<small id="p-usuario">${esc(staff.full_name ?? sesion.session.user.email)}</small>`;
+  mostrar("panel");
+  await Promise.all([cargarPersonas(), cargarOraciones()]);
+}
+
+/* ---------- Pestañas ---------- */
+function pestana(cual) {
+  const personasActiva = cual === "personas";
+  $("tab-personas").setAttribute("aria-selected", personasActiva);
+  $("tab-oraciones").setAttribute("aria-selected", !personasActiva);
+  $("sec-personas").hidden = !personasActiva;
+  $("sec-oraciones").hidden = personasActiva;
+}
+$("tab-personas").addEventListener("click", () => pestana("personas"));
+$("tab-oraciones").addEventListener("click", () => pestana("oraciones"));
+
+/* ---------- Personas ---------- */
+async function cargarPersonas() {
+  const { data, error } = await db.from("people").select("*").order("created_at", { ascending: false }).limit(2000);
+  if (error) { $("lista-personas").innerHTML = `<p class="vacio aviso--error">No se pudo cargar la lista (${esc(error.message)}).</p>`; return; }
+  personas = data;
+  dibujarPersonas();
+}
+
+function nombreCompleto(p) { return [p.first_name, p.last_name].filter(Boolean).join(" "); }
+
+function dibujarPersonas() {
+  const conteo = Object.fromEntries(Object.keys(ESTADOS).map((k) => [k, 0]));
+  personas.forEach((p) => { if (conteo[p.status] !== undefined) conteo[p.status]++; });
+  const tarjetas = [["todos", "Todas", personas.length], ...Object.entries(ESTADOS).map(([k, v]) => [k, v, conteo[k]])];
+  $("resumen").innerHTML = tarjetas.map(([k, etiqueta, n]) =>
+    `<button class="dato" type="button" data-filtro="${k}" aria-pressed="${filtroEstado === k}"><b>${n}</b><span>${esc(etiqueta)}</span></button>`
+  ).join("");
+
+  const q = $("buscar").value.trim().toLowerCase();
+  const visibles = personas.filter((p) =>
+    (filtroEstado === "todos" || p.status === filtroEstado) &&
+    (!q || [nombreCompleto(p), p.phone, p.email].some((v) => (v ?? "").toLowerCase().includes(q)))
+  );
+
+  if (!visibles.length) {
+    $("lista-personas").innerHTML = `<p class="vacio">${personas.length ? "No hay personas con ese filtro." : "Todavía no se anotó nadie. Cuando alguien complete el formulario de la página, aparecerá acá."}</p>`;
+    return;
+  }
+  $("lista-personas").innerHTML = `<table class="tabla">
+    <thead><tr><th>Nombre</th><th>Contacto</th><th>Estado</th><th>Origen</th><th>Se anotó</th></tr></thead>
+    <tbody>${visibles.map((p) => `<tr class="fila" data-id="${esc(p.id)}">
+      <td><span class="nombre">${esc(nombreCompleto(p))}</span>${p.notes ? `<div class="chico">${esc(p.notes.slice(0, 70))}${p.notes.length > 70 ? "…" : ""}</div>` : ""}</td>
+      <td>${esc(p.phone ?? "")}${p.phone && p.email ? "<br>" : ""}<span class="chico">${esc(p.email ?? "")}</span></td>
+      <td><select data-estado="${esc(p.id)}" aria-label="Estado de ${esc(nombreCompleto(p))}">${Object.entries(ESTADOS).map(([k, v]) => `<option value="${k}"${p.status === k ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></td>
+      <td class="chico">${p.source === "web_form" ? "Página web" : p.source === "presencial" ? "En persona" : esc(p.source ?? "")}</td>
+      <td class="chico">${fechaHora.format(new Date(p.created_at))}</td>
+    </tr>`).join("")}</tbody></table>`;
+}
+
+$("resumen").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-filtro]");
+  if (!b) return;
+  filtroEstado = b.dataset.filtro;
+  dibujarPersonas();
+});
+$("buscar").addEventListener("input", dibujarPersonas);
+$("btn-actualizar").addEventListener("click", cargarPersonas);
+
+/* Cambiar el estado desde la lista */
+async function cambiarEstado(id, estado) {
+  const cambios = { status: estado, updated_at: new Date().toISOString() };
+  const p = personas.find((x) => x.id === id);
+  if (estado === "visitor" && !p.first_visit_at) cambios.first_visit_at = hoyISO();
+  if (estado === "member" && !p.member_since) cambios.member_since = hoyISO();
+  const { error } = await db.from("people").update(cambios).eq("id", id);
+  if (error) { alert("No se pudo cambiar el estado: " + error.message); }
+  await cargarPersonas();
+}
+
+$("lista-personas").addEventListener("change", (ev) => {
+  const sel = ev.target.closest("[data-estado]");
+  if (sel) cambiarEstado(sel.dataset.estado, sel.value);
+});
+$("lista-personas").addEventListener("click", (ev) => {
+  if (ev.target.closest("select")) return;
+  const fila = ev.target.closest("tr[data-id]");
+  if (fila) abrirPersona(personas.find((p) => p.id === fila.dataset.id));
+});
+
+/* ---------- Detalle / nueva persona ---------- */
+$("dp-estado").innerHTML = Object.entries(ESTADOS).map(([k, v]) => `<option value="${k}">${esc(v)}</option>`).join("");
+
+function abrirPersona(p) {
+  editando = p;
+  $("dp-titulo").textContent = p ? nombreCompleto(p) : "Agregar persona";
+  $("dp-sub").textContent = p ? "" : "Para alguien que llegó en persona.";
+  $("dp-nombre").value = p?.first_name ?? "";
+  $("dp-apellido").value = p?.last_name ?? "";
+  $("dp-telefono").value = p?.phone ?? "";
+  $("dp-email").value = p?.email ?? "";
+  $("dp-estado").value = p?.status ?? "visitor";
+  $("dp-notas").value = p?.notes ?? "";
+  $("dp-aviso").textContent = "";
+  $("dp-meta").textContent = p
+    ? `Se anotó el ${fechaHora.format(new Date(p.created_at))}. ${p.consent_data ? "Aceptó que guardemos sus datos." : "No registra aceptación de datos."}`
+    : "";
+  const tel = (p?.phone ?? "").replace(/\D/g, "");
+  $("dp-wa").hidden = !tel;
+  if (tel) $("dp-wa").href = `https://wa.me/${tel}`;
+  $("dp-mail").hidden = !p?.email;
+  if (p?.email) $("dp-mail").href = `mailto:${p.email}`;
+  $("dlg-persona").showModal();
+}
+
+$("btn-nueva").addEventListener("click", () => abrirPersona(null));
+$("dp-cerrar").addEventListener("click", () => $("dlg-persona").close());
+
+$("form-persona").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const nombre = $("dp-nombre").value.trim();
+  if (!nombre) { $("dp-aviso").className = "aviso aviso--error"; $("dp-aviso").textContent = "Falta el nombre."; return; }
+  const campos = {
+    first_name: nombre,
+    last_name: $("dp-apellido").value.trim() || null,
+    phone: $("dp-telefono").value.trim() || null,
+    email: $("dp-email").value.trim() || null,
+    status: $("dp-estado").value,
+    notes: $("dp-notas").value.trim() || null,
+    updated_at: new Date().toISOString(),
+  };
+  if (campos.status === "visitor" && !editando?.first_visit_at) campos.first_visit_at = hoyISO();
+  if (campos.status === "member" && !editando?.member_since) campos.member_since = hoyISO();
+  const boton = $("dp-guardar");
+  boton.disabled = true;
+  const { error } = editando
+    ? await db.from("people").update(campos).eq("id", editando.id)
+    : await db.from("people").insert({ ...campos, church_id: iglesiaId, source: "presencial" });
+  boton.disabled = false;
+  if (error) { $("dp-aviso").className = "aviso aviso--error"; $("dp-aviso").textContent = "No se pudo guardar: " + error.message; return; }
+  $("dlg-persona").close();
+  await cargarPersonas();
+});
+
+/* ---------- CSV ---------- */
+$("btn-csv").addEventListener("click", () => {
+  const celda = (v) => {
+    let t = String(v ?? "");
+    if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; /* evita fórmulas al abrir en Excel */
+    return `"${t.replace(/"/g, '""')}"`;
+  };
+  const filas = [["Nombre", "Apellido", "Teléfono", "Correo", "Estado", "Origen", "Se anotó", "Notas"]];
+  personas.forEach((p) => filas.push([p.first_name, p.last_name, p.phone, p.email, ESTADOS[p.status] ?? p.status, p.source, p.created_at, p.notes]));
+  const csv = "﻿" + filas.map((f) => f.map(celda).join(",")).join("\r\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
+  a.download = `personas-${hoyISO()}.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+/* ---------- Pedidos de oración ---------- */
+async function cargarOraciones() {
+  const { data, error } = await db.from("prayer_requests").select("*").order("created_at", { ascending: false }).limit(500);
+  if (error) { $("lista-oraciones").innerHTML = `<p class="vacio aviso--error">No se pudo cargar (${esc(error.message)}).</p>`; return; }
+  $("lista-oraciones").innerHTML = data.length
+    ? data.map((o) => `<article class="oracion"><b>${esc(o.name || "Anónimo")}</b> <span class="chico">· ${fechaHora.format(new Date(o.created_at))}</span><p class="texto">${esc(o.request)}</p></article>`).join("")
+    : '<p class="vacio">Todavía no hay pedidos de oración.</p>';
+}
+$("btn-actualizar-or").addEventListener("click", cargarOraciones);
+
+/* ---------- Arranque ---------- */
+db.auth.onAuthStateChange((evento) => { if (evento === "SIGNED_OUT") mostrar("ingreso"); });
+iniciar();
+</script>
+</body>
+</html>

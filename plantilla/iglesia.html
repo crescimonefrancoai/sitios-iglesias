@@ -221,6 +221,26 @@ a { color: inherit; }
 }
 .campo textarea { min-height: 7rem; resize: vertical; }
 .panel--linea .boton { margin-top: 1.25rem; }
+.boton[disabled] { opacity: .6; cursor: wait; }
+.fila-botones { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
+.fila-botones .boton { margin-top: 0; }
+
+/* Formularios conectados a la base de datos */
+.panel--fuerte form { width: 100%; }
+.panel--fuerte .campo:first-child { margin-top: 0; }
+.panel--fuerte .campo span { color: var(--panel-texto); }
+.panel--fuerte .campo input { background: #F8FAF9; color: #17292D; border-color: transparent; }
+.check { display: flex; gap: .65rem; align-items: flex-start; margin-top: 1.1rem; font-size: .92rem; line-height: 1.45; cursor: pointer; }
+.check input { width: 1.2rem; height: 1.2rem; margin-top: .1rem; flex: none; accent-color: var(--lampara); }
+.panel--fuerte form .boton { margin-top: 1.25rem; }
+.trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.aviso { margin-top: 1rem; font-weight: 700; }
+.aviso:empty { display: none; }
+.panel--fuerte .aviso--error { color: #FFD2C9; }
+.panel--linea .aviso--error { color: #B3321B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .panel--linea .aviso--error { color: #FF9C88; } }
+:root[data-theme="dark"] .panel--linea .aviso--error { color: #FF9C88; }
+.nota-datos { margin-top: .85rem; font-size: .88rem; color: var(--suave); }
 @media (max-width: 52rem) { .pasos { grid-template-columns: 1fr; } }
 
 /* ==========================================================
@@ -398,13 +418,30 @@ a { color: inherit; }
         <h2>¿Eres nuevo en la fe?</h2>
         <p id="paso-texto"></p>
         <a class="boton boton--lampara" id="paso-boton" target="_blank" rel="noopener">Quiero dar mi siguiente paso</a>
+        <form id="paso-form" hidden novalidate>
+          <label class="campo"><span>Tu nombre</span><input type="text" id="pf-nombre" autocomplete="name" maxlength="120"></label>
+          <label class="campo"><span>Tu WhatsApp o teléfono</span><input type="tel" id="pf-telefono" autocomplete="tel" maxlength="40"></label>
+          <label class="campo"><span>Tu correo (opcional)</span><input type="email" id="pf-email" autocomplete="email" maxlength="160"></label>
+          <div class="trampa" aria-hidden="true"><label>No completar este campo<input type="text" id="pf-web" tabindex="-1" autocomplete="off"></label></div>
+          <label class="check"><input type="checkbox" id="pf-consent"><span>Acepto que la iglesia guarde mis datos para contactarme y acompañarme. Puedo pedir que los borren cuando quiera.</span></label>
+          <button class="boton boton--lampara" type="submit" id="pf-enviar">Quiero dar mi siguiente paso</button>
+          <p class="aviso" id="pf-aviso" role="status" aria-live="polite"></p>
+        </form>
       </div>
       <div class="panel panel--linea">
         <h2>¿Necesitas oración?</h2>
         <p class="texto suave">Cuéntanos tu petición. Nuestro equipo de intercesión orará por ti.</p>
-        <label class="campo"><span>Tu nombre (opcional)</span><input type="text" id="or-nombre" autocomplete="given-name"></label>
-        <label class="campo"><span>Tu petición</span><textarea id="or-texto"></textarea></label>
-        <a class="boton boton--marea" id="or-enviar" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+        <form id="or-form" novalidate>
+          <label class="campo"><span>Tu nombre (opcional)</span><input type="text" id="or-nombre" autocomplete="given-name" maxlength="120"></label>
+          <label class="campo"><span>Tu petición</span><textarea id="or-texto" maxlength="2000"></textarea></label>
+          <div class="trampa" aria-hidden="true"><label>No completar este campo<input type="text" id="or-web" tabindex="-1" autocomplete="off"></label></div>
+          <div class="fila-botones">
+            <button class="boton boton--marea" type="submit" id="or-guardar" hidden>Enviar petición</button>
+            <a class="boton boton--marea" id="or-enviar" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+          </div>
+          <p class="aviso" id="or-aviso" role="status" aria-live="polite"></p>
+          <p class="nota-datos" id="or-nota" hidden>Tu petición solo la ve el equipo de la iglesia.</p>
+        </form>
       </div>
     </div>
   </section>
@@ -502,7 +539,20 @@ $("p-iniciales").textContent = IGLESIA.pastores.iniciales;
 $("p-nombres").textContent = IGLESIA.pastores.nombres;
 $("p-texto").textContent = IGLESIA.pastores.texto;
 
-/* Siguiente paso y oración (se envían por WhatsApp, sin servidor) */
+/* Siguiente paso y oración.
+   Con la base de datos conectada (IGLESIA.supabase) los formularios guardan los datos;
+   sin conexión, todo sigue funcionando por WhatsApp. */
+const DB = IGLESIA.supabase || null;
+async function guardar(tabla, fila) {
+  const r = await fetch(`${DB.url}/rest/v1/${tabla}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", apikey: DB.anonKey, Authorization: `Bearer ${DB.anonKey}`, Prefer: "return=minimal" },
+    body: JSON.stringify(fila),
+  });
+  if (!r.ok) throw new Error(`Error ${r.status}`);
+}
+const aviso = (id, texto, error) => { const el = $(id); el.textContent = texto; el.className = "aviso" + (error ? " aviso--error" : ""); };
+
 $("paso-texto").textContent = IGLESIA.pasoTexto;
 $("paso-boton").href = wa("Hola, quiero dar mi siguiente paso en la fe.");
 const armarOracion = () => {
@@ -516,6 +566,77 @@ const armarOracion = () => {
 $("or-nombre").addEventListener("input", armarOracion);
 $("or-texto").addEventListener("input", armarOracion);
 armarOracion();
+
+if (DB) {
+  /* Formulario "siguiente paso" -> tabla people (estado: prospect) */
+  $("paso-boton").hidden = true;
+  $("paso-form").hidden = false;
+  $("paso-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if ($("pf-web").value) return; /* campo trampa: solo lo completan los robots */
+    const nombre = $("pf-nombre").value.trim().replace(/\s+/g, " ");
+    const telefono = $("pf-telefono").value.trim();
+    const email = $("pf-email").value.trim();
+    if (!nombre) return aviso("pf-aviso", "Escribe tu nombre.", true);
+    if (!telefono && !email) return aviso("pf-aviso", "Déjanos un teléfono o un correo para poder escribirte.", true);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return aviso("pf-aviso", "Revisa tu correo: no parece completo.", true);
+    if (!$("pf-consent").checked) return aviso("pf-aviso", "Para continuar, marca que aceptas que guardemos tus datos.", true);
+    const boton = $("pf-enviar");
+    boton.disabled = true;
+    aviso("pf-aviso", "Enviando…");
+    try {
+      const [nombrePila, ...resto] = nombre.split(" ");
+      await guardar("people", {
+        church_id: DB.churchId,
+        first_name: nombrePila,
+        last_name: resto.join(" ") || null,
+        phone: telefono || null,
+        email: email || null,
+        status: "prospect",
+        source: "web_form",
+        consent_data: true,
+        consent_at: new Date().toISOString(),
+      });
+      $("paso-form").reset();
+      aviso("pf-aviso", "¡Gracias! Recibimos tus datos y pronto alguien de la iglesia te escribirá.");
+    } catch (e) {
+      aviso("pf-aviso", "No pudimos guardar tus datos. Escríbenos por WhatsApp y te acompañamos.", true);
+      $("paso-boton").hidden = false;
+    } finally {
+      boton.disabled = false;
+    }
+  });
+
+  /* Formulario de oración -> tabla prayer_requests (WhatsApp queda como segunda opción) */
+  $("or-guardar").hidden = false;
+  $("or-nota").hidden = false;
+  $("or-enviar").classList.replace("boton--marea", "boton--linea");
+  $("or-enviar").textContent = "O enviar por WhatsApp";
+  $("or-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    if ($("or-web").value) return;
+    const texto = $("or-texto").value.trim();
+    if (!texto) return aviso("or-aviso", "Escribe tu petición.", true);
+    const boton = $("or-guardar");
+    boton.disabled = true;
+    aviso("or-aviso", "Enviando…");
+    try {
+      await guardar("prayer_requests", {
+        church_id: DB.churchId,
+        name: $("or-nombre").value.trim() || null,
+        request: texto,
+        is_private: true,
+      });
+      $("or-texto").value = "";
+      armarOracion();
+      aviso("or-aviso", "Recibimos tu petición. Estamos orando por ti.");
+    } catch (e) {
+      aviso("or-aviso", "No pudimos enviar tu petición. Puedes mandarla por WhatsApp.", true);
+    } finally {
+      boton.disabled = false;
+    }
+  });
+}
 
 /* Enseñanzas */
 $("ens-todas").href = IGLESIA.urlEnsenanzas;

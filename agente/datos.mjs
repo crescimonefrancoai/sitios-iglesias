@@ -70,6 +70,8 @@ export function erroresDeDatos(datos) {
   if (!esTexto(datos.nombre)) errores.push("nombre: falta.");
   if (!/^\d{8,15}$/.test(datos.whatsapp ?? "")) errores.push("whatsapp: solo dígitos, con código de país (ej. 5491122334455).");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(datos.email ?? "")) errores.push("email: no parece un correo.");
+  /* churchId es opcional: conecta el sitio con la base de datos (id de la iglesia en la tabla churches) */
+  if (datos.churchId !== undefined && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(datos.churchId)) errores.push("churchId: tiene que ser el id (UUID) de la iglesia en la base de datos.");
   for (const c of CAMPOS_TEXTO) if (!esTexto(leer(datos, c))) errores.push(`${c}: falta o es demasiado largo.`);
   for (const c of CAMPOS_URL) if (!esUrl(leer(datos, c))) errores.push(`${c}: tiene que empezar con https://`);
   for (const c of ["texto", "alias", "titular", "banco"]) if (!esTexto(leer(datos, `ofrendas.${c}`))) errores.push(`ofrendas.${c}: falta.`);
