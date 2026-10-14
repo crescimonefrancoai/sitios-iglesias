@@ -12,6 +12,11 @@ on:
         description: "Qué hay que cambiar, en palabras comunes"
         required: true
         type: string
+      aviso:
+        description: "Uso interno del agente de WhatsApp (dejar vacío)"
+        required: false
+        type: string
+        default: ""
 
 # Un pedido a la vez, para que dos cambios no se pisen
 concurrency:
@@ -48,6 +53,22 @@ jobs:
           git add clientes
           git commit -F "$RUNNER_TEMP/mensaje-commit.txt"
           git push
+      # Si el pedido llegó por WhatsApp, se le cuenta el resultado a quien lo hizo (pase lo que pase)
+      - name: Avisar por WhatsApp
+        if: always() && inputs.aviso != ''
+        env:
+          URL: ${{ secrets.WHATSAPP_AVISO_URL }}
+          SECRETO: ${{ secrets.WHATSAPP_AVISO_SECRET }}
+          AVISO: ${{ inputs.aviso }}
+          ESTADO: ${{ job.status }}
+        run: |
+          archivo="$RUNNER_TEMP/respuesta-whatsapp.txt"
+          if [ "$ESTADO" != "success" ] && ! grep -q "No pude hacer el cambio" "$archivo" 2>/dev/null; then
+            echo "⚠️ No pude hacer el cambio. Hubo un problema técnico y ya quedó registrado; vuelve a intentarlo en unos minutos." > "$archivo"
+          fi
+          jq -n --arg id "$AVISO" --rawfile texto "$archivo" '{id: $id, texto: $texto}' \
+            | curl -sS --fail-with-body -X POST "$URL" \
+                -H "Authorization: Bearer $SECRETO" -H "Content-Type: application/json" --data @-
 
   publicar:
     needs: cambiar
