@@ -32,9 +32,9 @@ let fallas = 0;
 fs.rmSync(dist, { recursive: true, force: true });
 
 for (const cliente of listarClientes()) {
-  if (cliente === "panel") {
+  if (cliente === "panel" || cliente === "privacidad") {
     fallas++;
-    console.error('✗ "panel" no puede ser el nombre de un cliente (esa dirección es del panel de administración).');
+    console.error(`✗ "${cliente}" no puede ser el nombre de un cliente (esa dirección está reservada).`);
     continue;
   }
   const datos = leerCliente(cliente);
@@ -64,5 +64,10 @@ if (conexion) {
   fs.writeFileSync(path.join(dist, "panel", "index.html"), panel);
   console.log("✓ panel");
 }
+
+/* Política de privacidad de Eklesic (la pide Meta para el agente de WhatsApp) */
+fs.mkdirSync(path.join(dist, "privacidad"), { recursive: true });
+fs.copyFileSync(path.join(RAIZ, "plantilla", "privacidad.html"), path.join(dist, "privacidad", "index.html"));
+console.log("✓ privacidad");
 
 if (fallas) process.exit(1);
