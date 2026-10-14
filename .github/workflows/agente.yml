@@ -56,6 +56,8 @@ jobs:
       # Si el pedido llegó por WhatsApp, se le cuenta el resultado a quien lo hizo (pase lo que pase)
       - name: Avisar por WhatsApp
         if: always() && inputs.aviso != ''
+        # Si el aviso falla, el cambio ya está guardado: igual tiene que publicarse
+        continue-on-error: true
         env:
           URL: ${{ secrets.WHATSAPP_AVISO_URL }}
           SECRETO: ${{ secrets.WHATSAPP_AVISO_SECRET }}
