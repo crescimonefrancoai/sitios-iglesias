@@ -45,6 +45,24 @@ curl -X POST https://api.github.com/repos/USUARIO/REPOSITORIO/actions/workflows/
 
 El token se crea en GitHub (Settings → Developer settings → Fine-grained tokens) con permiso **Actions: Read and write** sobre este repositorio.
 
+### Por WhatsApp
+
+Los pastores le escriben al número de WhatsApp de Eklesic y el pedido llega al mismo agente. Solo responden los números habilitados; cada uno corresponde a una iglesia.
+
+```
+supabase/functions/whatsapp/index.ts   Recibe los mensajes (webhook de Meta) y le pasa el pedido al agente
+base-de-datos/4-whatsapp.sql           Números habilitados y registro de mensajes
+```
+
+1. Quien escribe recibe "Recibido". La función dispara **Agente - pedir un cambio** con el cliente, el pedido y un id interno (`aviso`). El teléfono nunca viaja a GitHub.
+2. Al terminar, el workflow le devuelve el resultado a la función (`/whatsapp/aviso`) y la función se lo manda por WhatsApp.
+
+Secretos de la función (Supabase → Edge Functions → Secrets): `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET`, `GITHUB_TOKEN` (fine-grained, **Actions: Read and write** sobre este repositorio), `GITHUB_REPO` (`usuario/repositorio`) y `AVISO_SECRET`. La función va con **verificación de JWT apagada**, porque Meta no la manda; en su lugar se comprueba la firma de Meta y el `AVISO_SECRET`.
+
+Secretos del repositorio (GitHub → Settings → Secrets → Actions): `WHATSAPP_AVISO_URL` (`https://<proyecto>.supabase.co/functions/v1/whatsapp/aviso`) y `WHATSAPP_AVISO_SECRET` (el mismo valor que `AVISO_SECRET`).
+
+Para habilitar un número nuevo, agregarlo en la tabla `whatsapp_autorizados` (ver el final de `4-whatsapp.sql`). Por ahora entiende solo mensajes de texto.
+
 ## Qué puede y qué no puede tocar el agente
 
 Puede cambiar: título, bajada, visión, quiénes somos, pastores, texto de siguiente paso, enlaces de transmisión y enseñanzas, horarios, enseñanzas, eventos, ministerios, sedes y redes.

@@ -10,9 +10,18 @@ const cliente = (process.env.CLIENTE || "").trim();
 const pedido = (process.env.PEDIDO || "").trim();
 const zona = process.env.ZONA || "America/Argentina/Buenos_Aires";
 
-const terminar = (mensaje) => { console.error(mensaje); resumenActions(`**No se pudo hacer el cambio.** ${mensaje}`); process.exit(1); };
-if (!pedido) terminar("Falta el pedido.");
-if (pedido.length > 2000) terminar("El pedido es demasiado largo (máximo 2000 caracteres).");
+/* Lo que se le contesta por WhatsApp a quien hizo el pedido (si vino por ahí) */
+const respuestaWhatsApp = (texto) => fs.writeFileSync(archivoTemporal("respuesta-whatsapp.txt"), texto);
+
+/* paraPersona: explicación para quien pidió el cambio; sin ella se le da un aviso genérico (el detalle técnico queda en Actions) */
+const terminar = (mensaje, paraPersona) => {
+  console.error(mensaje);
+  resumenActions(`**No se pudo hacer el cambio.** ${mensaje}`);
+  respuestaWhatsApp(`⚠️ No pude hacer el cambio. ${paraPersona || "Hubo un problema técnico y ya quedó registrado; vuelve a intentarlo en unos minutos."}`);
+  process.exit(1);
+};
+if (!pedido) terminar("Falta el pedido.", "No llegó ningún pedido.");
+if (pedido.length > 2000) terminar("El pedido es demasiado largo (máximo 2000 caracteres).", "El pedido es demasiado largo; escríbelo en menos de 2000 caracteres.");
 
 let datos;
 try { datos = leerCliente(cliente); } catch (e) { terminar(e.message); }
@@ -98,19 +107,22 @@ try {
   throw error;
 }
 
-if (final.stop_reason !== "end_turn") terminar(`El agente no terminó el pedido (motivo: ${final.stop_reason}). No se guardó ningún cambio.`);
+if (final.stop_reason !== "end_turn") terminar(`El agente no terminó el pedido (motivo: ${final.stop_reason}). No se guardó ningún cambio.`,
+  "No llegué a terminarlo, así que no cambié nada. ¿Me lo puedes escribir de nuevo, más corto o de a un cambio por vez?");
 
 const resumen = final.content.filter((b) => b.type === "text").map((b) => b.text).join("\n").trim() || "Sin cambios: el agente no dejó un resumen.";
 const huboCambios = JSON.stringify(datos) !== original;
 
 if (huboCambios) {
   const errores = erroresDeDatos(datos);
-  if (errores.length) terminar(`Los datos quedaron con errores y no se guardaron:\n${errores.join("\n")}`);
+  if (errores.length) terminar(`Los datos quedaron con errores y no se guardaron:\n${errores.join("\n")}`,
+    "El cambio dejaba algún dato inválido (por ejemplo, una fecha que no existe o un enlace incompleto), así que no lo guardé. ¿Me lo escribes de nuevo con más detalle?");
   guardarCliente(cliente, datos);
   const titulo = resumen.split("\n")[0].slice(0, 70);
   fs.writeFileSync(archivoTemporal("mensaje-commit.txt"), `[${cliente}] ${titulo}\n\nPedido: ${pedido}\n\n${resumen}\n`);
 }
 
+respuestaWhatsApp(huboCambios ? `✅ ${resumen}\n\nLa página se actualiza en un par de minutos.` : `ℹ️ ${resumen}`);
 salidaActions("cambio", huboCambios ? "si" : "no");
 resumenActions(`### ${datos.nombre}\n\n**Pedido:** ${pedido}\n\n${resumen}\n\n${huboCambios ? "Cambios guardados; el sitio se publica en un par de minutos." : "No se modificó el sitio."}`);
 console.log(resumen);
