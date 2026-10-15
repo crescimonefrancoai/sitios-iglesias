@@ -1,0 +1,17 @@
+name: Avisos y recordatorios
+
+# La página avisa al momento de cada formulario; esto es el respaldo por si ese aviso no llegó,
+# y además manda los recordatorios de seguimiento (solo en horario de 9 a 20 de cada iglesia).
+on:
+  schedule:
+    - cron: "17 * * * *" # una vez por hora
+  workflow_dispatch:
+
+jobs:
+  pendientes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mandar lo pendiente
+        env:
+          URL: ${{ secrets.WHATSAPP_AVISO_URL }}
+        run: curl -sS --fail-with-body -X POST "${URL%/aviso}/pendientes"
