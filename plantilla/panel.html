@@ -78,6 +78,7 @@ label.campo > span { display: block; font-weight: 700; font-size: .9rem; margin-
 .tabla tr.fila:hover td { background: var(--espuma); }
 .tabla select { padding: .35rem .5rem; width: auto; }
 .nombre { font-weight: 700; }
+.pendiente { display: inline-block; margin-left: .45rem; padding: .05rem .55rem; border-radius: 999px; background: var(--lampara); color: var(--lampara-texto); font-size: .75rem; font-weight: 700; vertical-align: .1em; white-space: nowrap; }
 .chico { font-size: .85rem; color: var(--suave); }
 .vacio { padding: 2rem 0; color: var(--suave); }
 @media (max-width: 46rem) {
@@ -163,6 +164,7 @@ dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
     <p class="aviso" id="dp-aviso" role="alert"></p>
     <div class="acciones">
       <button class="boton boton--marea" type="submit" id="dp-guardar">Guardar</button>
+      <button class="boton boton--lampara" type="button" id="dp-contactado" hidden>Ya lo contactamos</button>
       <a class="boton boton--linea" id="dp-wa" target="_blank" rel="noopener" hidden>WhatsApp</a>
       <a class="boton boton--linea" id="dp-mail" hidden>Correo</a>
       <button class="boton boton--linea" type="button" id="dp-cerrar">Cerrar</button>
@@ -261,18 +263,21 @@ async function cargarPersonas() {
 }
 
 function nombreCompleto(p) { return [p.first_name, p.last_name].filter(Boolean).join(" "); }
+/* Se anotó en la página y todavía nadie del equipo marcó que lo contactó */
+const sinContactar = (p) => p.source === "web_form" && p.status === "prospect" && !p.contactado_at;
 
 function dibujarPersonas() {
   const conteo = Object.fromEntries(Object.keys(ESTADOS).map((k) => [k, 0]));
   personas.forEach((p) => { if (conteo[p.status] !== undefined) conteo[p.status]++; });
-  const tarjetas = [["todos", "Todas", personas.length], ...Object.entries(ESTADOS).map(([k, v]) => [k, v, conteo[k]])];
+  const tarjetas = [["todos", "Todas", personas.length], ["sin_contactar", "Sin contactar", personas.filter(sinContactar).length],
+    ...Object.entries(ESTADOS).map(([k, v]) => [k, v, conteo[k]])];
   $("resumen").innerHTML = tarjetas.map(([k, etiqueta, n]) =>
     `<button class="dato" type="button" data-filtro="${k}" aria-pressed="${filtroEstado === k}"><b>${n}</b><span>${esc(etiqueta)}</span></button>`
   ).join("");
 
   const q = $("buscar").value.trim().toLowerCase();
   const visibles = personas.filter((p) =>
-    (filtroEstado === "todos" || p.status === filtroEstado) &&
+    (filtroEstado === "todos" || (filtroEstado === "sin_contactar" ? sinContactar(p) : p.status === filtroEstado)) &&
     (!q || [nombreCompleto(p), p.phone, p.email].some((v) => (v ?? "").toLowerCase().includes(q)))
   );
 
@@ -283,7 +288,7 @@ function dibujarPersonas() {
   $("lista-personas").innerHTML = `<table class="tabla">
     <thead><tr><th>Nombre</th><th>Contacto</th><th>Estado</th><th>Origen</th><th>Se anotó</th></tr></thead>
     <tbody>${visibles.map((p) => `<tr class="fila" data-id="${esc(p.id)}">
-      <td><span class="nombre">${esc(nombreCompleto(p))}</span>${p.notes ? `<div class="chico">${esc(p.notes.slice(0, 70))}${p.notes.length > 70 ? "…" : ""}</div>` : ""}</td>
+      <td><span class="nombre">${esc(nombreCompleto(p))}</span>${sinContactar(p) ? '<span class="pendiente">Sin contactar</span>' : ""}${p.notes ? `<div class="chico">${esc(p.notes.slice(0, 70))}${p.notes.length > 70 ? "…" : ""}</div>` : ""}</td>
       <td>${esc(p.phone ?? "")}${p.phone && p.email ? "<br>" : ""}<span class="chico">${esc(p.email ?? "")}</span></td>
       <td><select data-estado="${esc(p.id)}" aria-label="Estado de ${esc(nombreCompleto(p))}">${Object.entries(ESTADOS).map(([k, v]) => `<option value="${k}"${p.status === k ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></td>
       <td class="chico">${p.source === "web_form" ? "Página web" : p.source === "presencial" ? "En persona" : esc(p.source ?? "")}</td>
@@ -336,8 +341,10 @@ function abrirPersona(p) {
   $("dp-notas").value = p?.notes ?? "";
   $("dp-aviso").textContent = "";
   $("dp-meta").textContent = p
-    ? `Se anotó el ${fechaHora.format(new Date(p.created_at))}. ${p.consent_data ? "Aceptó que guardemos sus datos." : "No registra aceptación de datos."}`
+    ? `Se anotó el ${fechaHora.format(new Date(p.created_at))}. ${p.consent_data ? "Aceptó que guardemos sus datos." : "No registra aceptación de datos."}` +
+      (p.contactado_at ? ` Contactado el ${fechaHora.format(new Date(p.contactado_at))}.` : "")
     : "";
+  $("dp-contactado").hidden = !p || !sinContactar(p);
   const tel = (p?.phone ?? "").replace(/\D/g, "");
   $("dp-wa").hidden = !tel;
   if (tel) $("dp-wa").href = `https://wa.me/${tel}`;
@@ -348,6 +355,17 @@ function abrirPersona(p) {
 
 $("btn-nueva").addEventListener("click", () => abrirPersona(null));
 $("dp-cerrar").addEventListener("click", () => $("dlg-persona").close());
+
+/* Marcar como contactado: frena el recordatorio automático al equipo */
+$("dp-contactado").addEventListener("click", async () => {
+  const boton = $("dp-contactado");
+  boton.disabled = true;
+  const { error } = await db.from("people").update({ contactado_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", editando.id);
+  boton.disabled = false;
+  if (error) { $("dp-aviso").className = "aviso aviso--error"; $("dp-aviso").textContent = "No se pudo marcar: " + error.message; return; }
+  $("dlg-persona").close();
+  await cargarPersonas();
+});
 
 $("form-persona").addEventListener("submit", async (ev) => {
   ev.preventDefault();

@@ -551,6 +551,10 @@ async function guardar(tabla, fila) {
   });
   if (!r.ok) throw new Error(`Error ${r.status}`);
 }
+/* Despierta los avisos por WhatsApp al equipo. No manda datos: la función los lee de la base.
+   Si falla no pasa nada: GitHub revisa lo pendiente cada hora. */
+const despertarAvisos = () =>
+  fetch(`${DB.url}/functions/v1/whatsapp/pendientes`, { method: "POST", mode: "no-cors", keepalive: true }).catch(() => {});
 const aviso = (id, texto, error) => { const el = $(id); el.textContent = texto; el.className = "aviso" + (error ? " aviso--error" : ""); };
 
 $("paso-texto").textContent = IGLESIA.pasoTexto;
@@ -597,6 +601,7 @@ if (DB) {
         consent_data: true,
         consent_at: new Date().toISOString(),
       });
+      despertarAvisos();
       $("paso-form").reset();
       aviso("pf-aviso", "¡Gracias! Recibimos tus datos y pronto alguien de la iglesia te escribirá.");
     } catch (e) {
@@ -627,6 +632,7 @@ if (DB) {
         request: texto,
         is_private: true,
       });
+      despertarAvisos();
       $("or-texto").value = "";
       armarOracion();
       aviso("or-aviso", "Recibimos tu petición. Estamos orando por ti.");
