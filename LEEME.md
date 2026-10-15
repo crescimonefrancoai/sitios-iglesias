@@ -98,3 +98,53 @@ plantilla/panel.html                   Panel de administración (se publica en /
 - Los **eventos y enseñanzas** siguen saliendo del archivo JSON (los actualiza el agente). La base guarda a las personas.
 - Para dar de alta una iglesia nueva: generar un UUID, ejecutar un `alta-<cliente>.sql` equivalente al de Puerto Seguro, y poner el mismo UUID como `churchId` en `clientes/<cliente>.json`.
 - Que alguien asista a una iglesia es información sensible: el formulario exige aceptar el tratamiento de datos y la base guarda la fecha de aceptación (`consent_at`). Revisar la normativa de cada país donde se venda.
+
+## Avisos de visitas y pedidos de oración
+
+Para que nadie que se anota en la página se pierda:
+
+| Cuándo | Qué pasa |
+|---|---|
+| Alguien completa "¿Eres nuevo en la fe?" | El equipo recibe un WhatsApp con su nombre y contacto. Si dejó un celular, la persona recibe una bienvenida. |
+| Alguien deja un pedido de oración | El equipo recibe un WhatsApp avisando quién lo dejó. El texto del pedido **no** viaja por WhatsApp: se lee en el panel. |
+| Pasan 2 días y nadie lo marcó como contactado | El equipo recibe un recordatorio (solo entre las 9 y las 20 de la iglesia, una sola vez). |
+
+En el panel, la tarjeta **Sin contactar** muestra a quien falta llamar, y el botón **Ya lo contactamos** frena el recordatorio.
+
+```
+base-de-datos/5-avisos.sql            Columnas para saber qué ya se avisó y quién fue contactado
+supabase/functions/whatsapp/index.ts  POST /whatsapp/pendientes: manda todo lo pendiente, cada cosa una sola vez
+.github/workflows/avisos.yml          Llama a /pendientes una vez por hora (respaldo y recordatorios)
+```
+
+- Reciben los avisos los números de `whatsapp_autorizados` de esa iglesia con `recibe_avisos = true` (por defecto, todos).
+- Días hasta el recordatorio: `settings.dias_seguimiento` de la iglesia (por defecto 2). Idioma de las plantillas: `settings.idioma` (por defecto `es`).
+- El teléfono de la bienvenida se pasa al formato de WhatsApp según `churches.country` (`AR`, `MX`, `BR`, `GT`). Si no se puede interpretar, no se manda la bienvenida; el equipo igual recibe el contacto.
+
+### Plantillas de WhatsApp
+
+WhatsApp no deja que un negocio escriba primero con texto libre: hacen falta **plantillas aprobadas por Meta**. Se crean en WhatsApp Manager → **Plantillas de mensajes → Crear plantilla**, categoría **Utilidad**, idioma **Español**, con el nombre y el texto exactos de abajo. Meta pide un ejemplo para cada `{{n}}`. Si cambia un nombre, el código no la encuentra.
+
+Meta clasifica sola cada plantilla. Para que quede en **Utilidad** (más barata y sin límites de entrega de Marketing), el texto tiene que empezar por el hecho concreto, sin saludos ni frases promocionales; la calidez va al cierre. Las primeras versiones (`aviso_nueva_visita`, `aviso_pedido_oracion`, `recordatorio_seguimiento`, `bienvenida_visita`) quedaron como Marketing y ya no se usan.
+
+**`aviso_registro_web`**
+> Nuevo registro en la página: {{1}} completó el formulario de siguiente paso. Contacto: {{2}}. Cuando le escribas, márcalo como contactado en el panel. Dios te bendiga.
+
+Ejemplos: `Ana López` · `11 2345 6789`
+
+**`aviso_oracion_recibida`**
+> Se recibió un nuevo pedido de oración en la página, de parte de {{1}}. Puedes leerlo en el panel de la iglesia. Dios te bendiga.
+
+Ejemplo: `Ana`
+
+**`seguimiento_pendiente`**
+> Seguimiento pendiente: {{1}} se registró en la página hace {{2}} días y todavía no figura como contactado. Contacto: {{3}}. Cuando le escribas, márcalo en el panel.
+
+Ejemplos: `Ana López` · `3` · `11 2345 6789`
+
+**`confirmacion_registro`**
+> Hola {{1}}, recibimos tus datos en la página de {{2}}. En los próximos días alguien de nuestro equipo te escribirá para acompañarte. Dios te bendiga.
+
+Ejemplos: `Ana` · `Iglesia Puerto Seguro`
+
+Cada mensaje de plantilla tiene un costo por mensaje que cobra Meta, según el país. Con el número de prueba de Meta solo llegan a los números cargados en su lista de destinatarios.
