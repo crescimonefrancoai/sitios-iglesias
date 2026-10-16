@@ -75,6 +75,23 @@ Si un cambio deja los datos con errores (una fecha que no existe, un enlace sin 
 
 Corre sola los lunes a las 9:00 (hora de Argentina). Quita los eventos que ya pasaron y, si encuentra algo para revisar (sin próximos eventos, más de 21 días sin enseñanza nueva, enlaces caídos, datos de ejemplo), abre un aviso en la pestaña **Issues** del repositorio. No usa la API de Claude, así que no tiene costo.
 
+## Enseñanzas desde YouTube
+
+Cada 6 horas, **Enseñanzas desde YouTube** (`.github/workflows/youtube.yml` → `agente/youtube.mjs`) revisa el canal de cada iglesia que tenga configurado:
+
+1. Lee la lista pública de videos del canal (la que YouTube publica para cualquiera: no usa cuenta, contraseña ni permiso del canal).
+2. Descarta los shorts, las transmisiones programadas que todavía no empezaron (0 vistas), los videos de más de 21 días y los que ya están en el sitio.
+3. Si queda algún video nuevo, Claude decide si es una enseñanza (prédica, culto, estudio) o no (anuncio, clip), limpia el título, identifica al pastor y escribe un resumen de una oración. Claude solo se usa cuando hay videos nuevos.
+4. Agrega las enseñanzas, deja las 12 más recientes y publica el sitio.
+
+Para activarlo en una iglesia, agregar en `clientes/<cliente>.json` la línea:
+
+```json
+"youtube": "@usuario-del-canal",
+```
+
+También acepta el enlace completo del canal o su id (`UC…`). Para probarlo sin esperar: **Actions → Enseñanzas desde YouTube → Run workflow**.
+
 ## Agregar una iglesia
 
 Copiar `clientes/puerto-seguro.json` con otro nombre (minúsculas y guiones, por ejemplo `luz-del-valle.json`), cargar sus datos y subirlo. El sitio aparece en `/<ese-nombre>/`.
