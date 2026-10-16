@@ -90,7 +90,32 @@ Para activarlo en una iglesia, agregar en `clientes/<cliente>.json` la línea:
 "youtube": "@usuario-del-canal",
 ```
 
-También acepta el enlace completo del canal o su id (`UC…`). Para probarlo sin esperar: **Actions → Enseñanzas desde YouTube → Run workflow**.
+También acepta el enlace completo del canal o su id (`UC…`).
+
+Por defecto entran prédicas, cultos y estudios, y quedan afuera anuncios y clips. Cada iglesia puede cambiar ese criterio en palabras comunes con otra línea:
+
+```json
+"youtubeCriterio": "Incluir las prédicas y el podcast «Café con el pastor». No incluir los videos de alabanza.",
+```
+
+Para probarlo sin esperar: **Actions → Enseñanzas desde YouTube → Run workflow**.
+
+## Asistente de la página
+
+Una burbuja "¿Tienes una pregunta?" abre un chat que responde a los visitantes con la información de su iglesia: horarios, sedes, ministerios, próximos eventos, enseñanzas y contacto. Aparece solo en los sitios conectados a la base de datos.
+
+```
+supabase/functions/asistente/index.ts  Función "asistente": arma la respuesta con Claude
+base-de-datos/7-asistente.sql          Límites de uso
+```
+
+- Lee los datos de la iglesia del archivo del cliente en GitHub (cada 10 minutos como mucho), sin ids, claves ni datos bancarios.
+- **No pide datos personales**: a quien quiere que lo contacten o pide oración lo lleva a los formularios de la página, que ya tienen el consentimiento y disparan los avisos.
+- **No guarda las conversaciones.**
+- Límites: 20 mensajes por hora por visitante y 300 por día por iglesia (`settings.asistente_max_dia`). Para apagarlo en una iglesia: `settings.asistente = false` en la base, o `"asistente": false` en su archivo.
+- Usa Claude Haiku 4.5 (el modelo económico de Claude, suficiente para estas preguntas): cada mensaje cuesta del orden de medio centavo de dólar.
+
+Instalación: crear la función `asistente` en Supabase (Edge Functions → Deploy a new function → Via Editor) con el código de `index.ts`, **con la verificación de JWT apagada**, y agregar el secreto `ANTHROPIC_API_KEY`. Ejecutar `7-asistente.sql`.
 
 ## Agregar una iglesia
 
@@ -128,6 +153,10 @@ Para que nadie que se anota en la página se pierda:
 
 En el panel, la tarjeta **Sin contactar** muestra a quien falta llamar, y el botón **Ya lo contactamos** frena el recordatorio.
 
+**Reporte mensual**: entre el 1 y el 5 de cada mes, en horario de la iglesia, el equipo recibe un resumen del mes anterior (personas registradas, contactadas y pendientes, pedidos de oración y enseñanzas publicadas, con el enlace al panel). Llega una sola vez por mes: `base-de-datos/6-reporte-mensual.sql` registra qué mes ya se mandó. Las enseñanzas se cuentan desde el archivo del cliente en GitHub. El enlace al panel sale de `GITHUB_REPO`, o del secreto `PANEL_URL` si la iglesia tiene dominio propio.
+
+Para probarlo un día que no sea del 1 al 5: agregar en Supabase el secreto `REPORTE_CUALQUIER_DIA` = `si`, correr **Avisos y recordatorios** en Actions y después **borrar el secreto**. Para repetir la prueba, borrar la fila de ese mes en la tabla `reportes_mensuales`.
+
 ```
 base-de-datos/5-avisos.sql            Columnas para saber qué ya se avisó y quién fue contactado
 supabase/functions/whatsapp/index.ts  POST /whatsapp/pendientes: manda todo lo pendiente, cada cosa una sola vez
@@ -163,5 +192,16 @@ Ejemplos: `Ana López` · `3` · `11 2345 6789`
 > Hola {{1}}, recibimos tus datos en la página de {{2}}. En los próximos días alguien de nuestro equipo te escribirá para acompañarte. Dios te bendiga.
 
 Ejemplos: `Ana` · `Iglesia Puerto Seguro`
+
+**`reporte_mensual`**
+> Este es el resumen de {{1}} de la página web de la iglesia:
+> • Personas nuevas registradas: {{2}}
+> • Personas ya contactadas: {{3}}
+> • Personas pendientes de contactar: {{4}}
+> • Pedidos de oración recibidos: {{5}}
+> • Enseñanzas publicadas: {{6}}
+> Puedes ver el detalle de cada persona en el panel: {{7}} . Dios te bendiga.
+
+Ejemplos: `octubre 2026` · `5` · `3` · `2` · `4` · `2` · `https://crescimonefrancoai.github.io/sitios-iglesias/panel/`
 
 Cada mensaje de plantilla tiene un costo por mensaje que cobra Meta, según el país. Con el número de prueba de Meta solo llegan a los números cargados en su lista de destinatarios.
