@@ -215,7 +215,7 @@ a { color: inherit; }
 .panel--linea { border: 1.5px solid var(--linea); }
 .campo { display: block; margin-top: 1rem; }
 .campo span { display: block; font-weight: 700; font-size: .95rem; margin-bottom: .35rem; }
-.campo input, .campo textarea {
+.campo input, .campo textarea, .campo select {
   width: 100%; font: inherit; color: var(--tinta); background: var(--sal);
   border: 1.5px solid var(--linea); border-radius: .75rem; padding: .75rem .9rem;
 }
@@ -268,6 +268,16 @@ a { color: inherit; }
 .evento .mes { font-weight: 700; margin-top: .15rem; }
 .evento h3 { margin-top: 1rem; }
 .evento p { margin-top: .35rem; color: var(--suave); font-size: .98rem; }
+.evento .boton { margin-top: 1rem; padding: .6rem 1.15rem; }
+.evento .lugares { font-size: .9rem; font-weight: 700; color: var(--marea); }
+.evento .lugares:empty { display: none; }
+.dlg-insc { border: 0; border-radius: 1.25rem; padding: clamp(1.25rem, 4vw, 2rem); width: min(30rem, calc(100% - 1.5rem)); background: var(--sal); color: var(--tinta); }
+.dlg-insc::backdrop { background: rgba(8, 24, 28, .65); }
+.dlg-insc h2 { font-size: clamp(1.5rem, 4vw, 1.9rem); margin-bottom: .35rem; }
+.dlg-insc .boton--linea:hover { background: var(--espuma); }
+.dlg-insc .aviso--error { color: #B3321B; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .dlg-insc .aviso--error { color: #FF9C88; } }
+:root[data-theme="dark"] .dlg-insc .aviso--error { color: #FF9C88; }
 .vacio { color: var(--suave); }
 
 /* ==========================================================
@@ -552,6 +562,25 @@ a { color: inherit; }
   </div>
 </footer>
 
+<!-- INSCRIPCIÓN A EVENTOS (aparece en los eventos con inscripción, si la iglesia está conectada a la base de datos) -->
+<dialog class="dlg-insc" id="dlg-insc" aria-labelledby="insc-titulo">
+  <form id="insc-form" novalidate>
+    <h2 id="insc-titulo">Inscripción</h2>
+    <p class="suave" id="insc-sub"></p>
+    <label class="campo"><span>Tu nombre</span><input type="text" id="insc-nombre" autocomplete="name" maxlength="120"></label>
+    <label class="campo"><span>Tu WhatsApp o teléfono</span><input type="tel" id="insc-telefono" autocomplete="tel" maxlength="40"></label>
+    <label class="campo"><span>Tu correo (opcional)</span><input type="email" id="insc-email" autocomplete="email" maxlength="160"></label>
+    <label class="campo"><span>¿Cuántas personas vienen contigo?</span><select id="insc-acomp"></select></label>
+    <div class="trampa" aria-hidden="true"><label>No completar este campo<input type="text" id="insc-web" tabindex="-1" autocomplete="off"></label></div>
+    <label class="check"><input type="checkbox" id="insc-consent"><span>Acepto que la iglesia guarde mis datos para esta inscripción y para avisarme sobre el evento.</span></label>
+    <p class="aviso" id="insc-aviso" role="status" aria-live="polite"></p>
+    <div class="fila-botones">
+      <button class="boton boton--marea" type="submit" id="insc-enviar">Inscribirme</button>
+      <button class="boton boton--linea" type="button" id="insc-cerrar">Cerrar</button>
+    </div>
+  </form>
+</dialog>
+
 <!-- ASISTENTE (aparece si la iglesia está conectada a la base de datos) -->
 <button class="asis-boton" id="asis-boton" type="button" aria-expanded="false" aria-controls="asis-panel" hidden>
   <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.5L5 21v-4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 6.5a1.5 1.5 0 1 0 0 .01zm5 0a1.5 1.5 0 1 0 0 .01zm5 0a1.5 1.5 0 1 0 0 .01z"/></svg>
@@ -727,9 +756,76 @@ $("ev-lista").innerHTML = proximos.length
         <div class="mes">${fmtMes.format(f)}</div>
         <h3>${esc(e.titulo)}</h3>
         <p>${fmtDiaSemana.format(f)}, ${esc(e.hora)}. ${esc(e.lugar)}</p>
+        ${DB && e.inscripcion && e.id ? `<p class="lugares" data-lugares="${esc(e.id)}"></p>
+        <button class="boton boton--marea" type="button" data-evento="${esc(e.id)}">Quiero inscribirme</button>` : ""}
       </article>`;
     }).join("")
   : `<p class="vacio">Pronto publicaremos las próximas fechas.</p>`;
+
+/* Inscripción a eventos: la función "whatsapp" de Supabase revisa el evento y el cupo, y manda la confirmación */
+const conInscripcion = DB ? proximos.filter((e) => e.inscripcion && e.id) : [];
+if (conInscripcion.length) {
+  /* Sin encabezados propios: así el navegador no necesita pedir permiso previo (CORS) */
+  const llamar = (ruta, datos) =>
+    fetch(`${DB.url}/functions/v1/whatsapp/${ruta}`, { method: "POST", body: JSON.stringify(datos) }).then((r) => r.json());
+  const mostrarLugares = (ocupados) => conInscripcion.forEach((e) => {
+    const lugares = document.querySelector(`[data-lugares="${e.id}"]`);
+    const boton = document.querySelector(`[data-evento="${e.id}"]`);
+    if (!e.cupo || !lugares || !boton) return;
+    const quedan = Math.max(0, e.cupo - (ocupados[e.id] ?? 0));
+    lugares.textContent = quedan ? `Quedan ${quedan} ${quedan === 1 ? "lugar" : "lugares"}` : "Inscripciones cerradas: ya no quedan lugares.";
+    boton.hidden = !quedan;
+  });
+  const actualizarLugares = () => llamar("cupos", { churchId: DB.churchId }).then((r) => mostrarLugares(r.ocupados ?? {})).catch(() => {});
+  actualizarLugares();
+
+  let eventoAbierto = null;
+  $("insc-acomp").innerHTML = Array.from({ length: 11 }, (_, n) => `<option value="${n}">${n === 0 ? "Vengo solo/a" : n}</option>`).join("");
+  $("ev-lista").addEventListener("click", (ev) => {
+    const boton = ev.target.closest("[data-evento]");
+    if (!boton) return;
+    eventoAbierto = conInscripcion.find((e) => e.id === boton.dataset.evento);
+    const f = aFecha(eventoAbierto.fecha);
+    $("insc-titulo").textContent = eventoAbierto.titulo;
+    $("insc-sub").textContent = `${fmtDiaSemana.format(f)} ${f.getDate()} de ${fmtMes.format(f)}, ${eventoAbierto.hora}. ${eventoAbierto.lugar}`;
+    $("insc-enviar").hidden = false;
+    aviso("insc-aviso", "");
+    $("dlg-insc").showModal();
+  });
+  $("insc-cerrar").addEventListener("click", () => $("dlg-insc").close());
+
+  $("insc-form").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const nombre = $("insc-nombre").value.trim().replace(/\s+/g, " ");
+    const telefono = $("insc-telefono").value.trim();
+    const email = $("insc-email").value.trim();
+    if (!nombre) return aviso("insc-aviso", "Escribe tu nombre.", true);
+    if (!telefono && !email) return aviso("insc-aviso", "Déjanos un teléfono o un correo para confirmarte.", true);
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return aviso("insc-aviso", "Revisa tu correo: no parece completo.", true);
+    if (!$("insc-consent").checked) return aviso("insc-aviso", "Para inscribirte, marca que aceptas que guardemos tus datos.", true);
+    const boton = $("insc-enviar");
+    boton.disabled = true;
+    aviso("insc-aviso", "Enviando…");
+    try {
+      const r = await llamar("inscribir", {
+        churchId: DB.churchId, eventoId: eventoAbierto.id, nombre, telefono, email,
+        acompanantes: Number($("insc-acomp").value), acepto: true, web: $("insc-web").value,
+      });
+      if (r.ok) {
+        aviso("insc-aviso", r.mensaje);
+        $("insc-form").reset();
+        boton.hidden = true;
+        actualizarLugares();
+      } else {
+        aviso("insc-aviso", r.error || "No pudimos guardar tu inscripción.", true);
+      }
+    } catch (e) {
+      aviso("insc-aviso", "No pudimos guardar tu inscripción. Escríbenos por WhatsApp y te anotamos.", true);
+    } finally {
+      boton.disabled = false;
+    }
+  });
+}
 
 /* Ministerios */
 $("min-lista").innerHTML = IGLESIA.ministerios.map((m) =>
@@ -790,6 +886,16 @@ $("pie-redes").innerHTML = IGLESIA.redes.map((r) =>
    La conversación vive solo en esta página: no se guarda. */
 if (DB && IGLESIA.asistente !== false) {
   const historial = [];
+  /* Código al azar de este navegador (sin datos personales): da a cada persona su propio límite de mensajes,
+     aunque muchas compartan el WiFi del templo. Si el navegador no deja guardarlo, vale por esta visita. */
+  const visitante = (() => {
+    const nuevo = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => b.toString(36).padStart(2, "0")).join("").slice(0, 24);
+    try {
+      let v = localStorage.getItem("asistente-visitante");
+      if (!/^[a-z0-9]{16,40}$/.test(v || "")) { v = nuevo(); localStorage.setItem("asistente-visitante", v); }
+      return v;
+    } catch (e) { return nuevo(); }
+  })();
   const caja = $("asis-mensajes");
   const agregar = (rol, texto, extra = "") => {
     const p = document.createElement("p");
@@ -825,7 +931,7 @@ if (DB && IGLESIA.asistente !== false) {
     let respuesta = "";
     try {
       /* Sin encabezados propios: así el navegador no necesita pedir permiso previo (CORS) */
-      const r = await fetch(`${DB.url}/functions/v1/asistente`, { method: "POST", body: JSON.stringify({ churchId: DB.churchId, mensajes: historial }) });
+      const r = await fetch(`${DB.url}/functions/v1/asistente`, { method: "POST", body: JSON.stringify({ churchId: DB.churchId, visitante, mensajes: historial }) });
       respuesta = (await r.json()).respuesta || "";
     } catch (e) { /* sin conexión: se usa el mensaje de abajo */ }
     respuesta ||= "No pude responder en este momento. Puedes escribirle a la iglesia por WhatsApp.";

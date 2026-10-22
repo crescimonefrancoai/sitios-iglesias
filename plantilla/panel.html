@@ -88,6 +88,11 @@ label.campo > span { display: block; font-weight: 700; font-size: .9rem; margin-
   .tabla td { border: 0; padding: .15rem 0; }
 }
 
+.evento-insc { border: 1.5px solid var(--linea); border-radius: 1rem; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.evento-insc__cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: .5rem; }
+.evento-insc h3 { font-size: 1.25rem; }
+.evento-insc .total { font-weight: 700; color: var(--marea); }
+
 .oracion { border: 1.5px solid var(--linea); border-radius: 1rem; padding: 1rem 1.25rem; margin-bottom: .85rem; }
 .oracion p.texto { margin-top: .5rem; white-space: pre-wrap; overflow-wrap: anywhere; }
 
@@ -127,6 +132,7 @@ dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
     <div class="pestanas" role="tablist">
       <button class="pestana" role="tab" id="tab-personas" aria-selected="true" type="button">Personas</button>
       <button class="pestana" role="tab" id="tab-oraciones" aria-selected="false" type="button">Pedidos de oración</button>
+      <button class="pestana" role="tab" id="tab-inscripciones" aria-selected="false" type="button">Inscripciones</button>
     </div>
 
     <section id="sec-personas">
@@ -143,6 +149,11 @@ dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
     <section id="sec-oraciones" hidden>
       <div class="herramientas"><button class="boton boton--linea" id="btn-actualizar-or" type="button">Actualizar</button></div>
       <div id="lista-oraciones"></div>
+    </section>
+
+    <section id="sec-inscripciones" hidden>
+      <div class="herramientas"><button class="boton boton--linea" id="btn-actualizar-insc" type="button">Actualizar</button></div>
+      <div id="lista-inscripciones"></div>
     </section>
   </div>
 </div>
@@ -240,23 +251,35 @@ async function iniciar() {
   const { data: iglesia } = await db.from("churches").select("name").eq("id", iglesiaId).maybeSingle();
   $("p-iglesia").innerHTML = `${esc(iglesia?.name ?? "Panel")}<small id="p-usuario">${esc(staff.full_name ?? sesion.session.user.email)}</small>`;
   mostrar("panel");
-  await Promise.all([cargarPersonas(), cargarOraciones()]);
+  await Promise.all([cargarPersonas(), cargarOraciones(), cargarInscripciones()]);
 }
 
 /* ---------- Pestañas ---------- */
+const PESTANAS = ["personas", "oraciones", "inscripciones"];
 function pestana(cual) {
-  const personasActiva = cual === "personas";
-  $("tab-personas").setAttribute("aria-selected", personasActiva);
-  $("tab-oraciones").setAttribute("aria-selected", !personasActiva);
-  $("sec-personas").hidden = !personasActiva;
-  $("sec-oraciones").hidden = personasActiva;
+  for (const p of PESTANAS) {
+    $(`tab-${p}`).setAttribute("aria-selected", p === cual);
+    $(`sec-${p}`).hidden = p !== cual;
+  }
 }
-$("tab-personas").addEventListener("click", () => pestana("personas"));
-$("tab-oraciones").addEventListener("click", () => pestana("oraciones"));
+for (const p of PESTANAS) $(`tab-${p}`).addEventListener("click", () => pestana(p));
+
+/* Supabase entrega como máximo 1000 filas por consulta: se piden por tandas hasta traer todas.
+   El orden incluye el id para que ninguna fila se repita ni se saltee entre tandas. */
+async function traerTodas(armarConsulta, maximo = 20000) {
+  const filas = [];
+  while (filas.length < maximo) {
+    const { data, error } = await armarConsulta().range(filas.length, filas.length + 999);
+    if (error) return { data: null, error };
+    if (!data.length) break;
+    filas.push(...data);
+  }
+  return { data: filas, error: null };
+}
 
 /* ---------- Personas ---------- */
 async function cargarPersonas() {
-  const { data, error } = await db.from("people").select("*").order("created_at", { ascending: false }).limit(2000);
+  const { data, error } = await traerTodas(() => db.from("people").select("*").order("created_at", { ascending: false }).order("id"));
   if (error) { $("lista-personas").innerHTML = `<p class="vacio aviso--error">No se pudo cargar la lista (${esc(error.message)}).</p>`; return; }
   personas = data;
   dibujarPersonas();
@@ -394,21 +417,79 @@ $("form-persona").addEventListener("submit", async (ev) => {
 });
 
 /* ---------- CSV ---------- */
-$("btn-csv").addEventListener("click", () => {
+function descargarCsv(nombreArchivo, filas) {
   const celda = (v) => {
     let t = String(v ?? "");
     if (/^[=+\-@\t\r]/.test(t)) t = "'" + t; /* evita fórmulas al abrir en Excel */
     return `"${t.replace(/"/g, '""')}"`;
   };
-  const filas = [["Nombre", "Apellido", "Teléfono", "Correo", "Estado", "Origen", "Se anotó", "Notas"]];
-  personas.forEach((p) => filas.push([p.first_name, p.last_name, p.phone, p.email, ESTADOS[p.status] ?? p.status, p.source, p.created_at, p.notes]));
   const csv = "﻿" + filas.map((f) => f.map(celda).join(",")).join("\r\n");
   const a = document.createElement("a");
   a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
-  a.download = `personas-${hoyISO()}.csv`;
+  a.download = nombreArchivo;
   a.click();
   URL.revokeObjectURL(a.href);
+}
+
+$("btn-csv").addEventListener("click", () => {
+  const filas = [["Nombre", "Apellido", "Teléfono", "Correo", "Estado", "Origen", "Se anotó", "Notas"]];
+  personas.forEach((p) => filas.push([p.first_name, p.last_name, p.phone, p.email, ESTADOS[p.status] ?? p.status, p.source, p.created_at, p.notes]));
+  descargarCsv(`personas-${hoyISO()}.csv`, filas);
 });
+
+/* ---------- Inscripciones a eventos ---------- */
+let eventosInsc = [];
+const fechaEvento = (iso) => new Intl.DateTimeFormat("es", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
+
+async function cargarInscripciones() {
+  const { data, error } = await traerTodas(() => db.from("inscripciones").select("*").order("evento_fecha").order("created_at").order("id"));
+  if (error) { $("lista-inscripciones").innerHTML = `<p class="vacio aviso--error">No se pudo cargar (${esc(error.message)}).</p>`; return; }
+  const porEvento = new Map();
+  for (const i of data) {
+    if (!porEvento.has(i.evento_id)) porEvento.set(i.evento_id, { id: i.evento_id, titulo: i.evento_titulo, fecha: i.evento_fecha, filas: [] });
+    porEvento.get(i.evento_id).filas.push(i);
+  }
+  const hoy = hoyISO();
+  /* Primero los próximos (del más cercano al más lejano) y al final los que ya pasaron (del más reciente al más viejo) */
+  eventosInsc = [...porEvento.values()].sort((a, b) => {
+    const pasoA = a.fecha < hoy, pasoB = b.fecha < hoy;
+    if (pasoA !== pasoB) return pasoA ? 1 : -1;
+    return pasoA ? b.fecha.localeCompare(a.fecha) : a.fecha.localeCompare(b.fecha);
+  });
+  if (!eventosInsc.length) {
+    $("lista-inscripciones").innerHTML = '<p class="vacio">Todavía no hay inscripciones. Cuando un evento tenga inscripción y alguien se anote en la página, aparecerá acá.</p>';
+    return;
+  }
+  $("lista-inscripciones").innerHTML = eventosInsc.map((e) => {
+    const personasTotal = e.filas.reduce((n, i) => n + 1 + i.acompanantes, 0);
+    return `<article class="evento-insc">
+      <div class="evento-insc__cabecera">
+        <div><h3>${esc(e.titulo)}</h3><span class="chico">${esc(fechaEvento(e.fecha))}${e.fecha < hoy ? " · ya pasó" : ""}</span></div>
+        <span class="total">${personasTotal} ${personasTotal === 1 ? "persona" : "personas"} (${e.filas.length} ${e.filas.length === 1 ? "inscripción" : "inscripciones"})</span>
+        <button class="boton boton--linea" type="button" data-csv-evento="${esc(e.id)}">Descargar lista (CSV)</button>
+      </div>
+      <table class="tabla">
+        <thead><tr><th>Nombre</th><th>Contacto</th><th>Acompañantes</th><th>Se inscribió</th></tr></thead>
+        <tbody>${e.filas.map((i) => `<tr>
+          <td><span class="nombre">${esc(i.nombre)}</span></td>
+          <td>${esc(i.telefono ?? "")}${i.telefono && i.email ? "<br>" : ""}<span class="chico">${esc(i.email ?? "")}</span></td>
+          <td>${i.acompanantes}</td>
+          <td class="chico">${fechaHora.format(new Date(i.created_at))}</td>
+        </tr>`).join("")}</tbody>
+      </table>
+    </article>`;
+  }).join("");
+}
+
+$("lista-inscripciones").addEventListener("click", (ev) => {
+  const b = ev.target.closest("[data-csv-evento]");
+  if (!b) return;
+  const e = eventosInsc.find((x) => x.id === b.dataset.csvEvento);
+  const filas = [["Evento", "Fecha", "Nombre", "Teléfono", "Correo", "Acompañantes", "Se inscribió"]];
+  e.filas.forEach((i) => filas.push([e.titulo, e.fecha, i.nombre, i.telefono, i.email, i.acompanantes, i.created_at]));
+  descargarCsv(`inscripciones-${e.fecha}-${e.titulo.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.csv`, filas);
+});
+$("btn-actualizar-insc").addEventListener("click", cargarInscripciones);
 
 /* ---------- Pedidos de oración ---------- */
 async function cargarOraciones() {
