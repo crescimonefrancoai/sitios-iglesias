@@ -1,9 +1,9 @@
 /* Asistente de la página (Supabase Edge Function "asistente").
 
-   POST /asistente   { churchId, mensajes: [{ rol: "usuario" | "asistente", texto }] }  ->  { respuesta } o { error }
+   POST /asistente   { churchId, visitante, mensajes: [{ rol: "usuario" | "asistente", texto }] }  ->  { respuesta } o { error }
 
    Responde preguntas de los visitantes con la información de su iglesia (el archivo del cliente en GitHub).
-   No guarda las conversaciones. Límites: 20 mensajes por hora por visitante y 300 por día por iglesia
+   No guarda las conversaciones. Límites: 20 mensajes por hora por navegador, 300 por hora por conexión y 1000 por día por iglesia
    (settings.asistente_max_dia). Se apaga para una iglesia con settings.asistente = false.
 
    Secretos (Supabase -> Edge Functions -> Secrets): ANTHROPIC_API_KEY y GITHUB_REPO (ya existe, lo usa whatsapp).
@@ -18,8 +18,9 @@ const claude = new Anthropic({ apiKey: env("ANTHROPIC_API_KEY") });
 
 const MAX_HISTORIAL = 12;        // mensajes de la conversación que se tienen en cuenta
 const MAX_MENSAJE = 600;         // caracteres por mensaje del visitante
-const POR_HORA_VISITANTE = 20;
-const POR_DIA_IGLESIA = 300;
+const POR_HORA_VISITANTE = 20;   // por navegador (un código al azar que guarda la página, sin datos personales)
+const POR_HORA_CONEXION = 300;   // por IP: en el culto cientos de personas comparten el WiFi del templo
+const POR_DIA_IGLESIA = 1000;    // se cambia por iglesia con settings.asistente_max_dia
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -112,7 +113,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return responder(405, { error: "método no permitido" });
 
-  let cuerpo: { churchId?: unknown; mensajes?: unknown };
+  let cuerpo: { churchId?: unknown; mensajes?: unknown; visitante?: unknown };
   try { cuerpo = JSON.parse(await req.text()); } catch { return responder(400, { error: "json inválido" }); }
   const churchId = typeof cuerpo.churchId === "string" && /^[0-9a-f-]{36}$/i.test(cuerpo.churchId) ? cuerpo.churchId : null;
   const mensajes = armarMensajes(cuerpo.mensajes);
@@ -123,7 +124,10 @@ Deno.serve(async (req) => {
 
   const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "sin-ip";
   const maxDia = Number(iglesia.settings.asistente_max_dia) > 0 ? Number(iglesia.settings.asistente_max_dia) : POR_DIA_IGLESIA;
-  if (!(await permitido(`ip:${await cifrar(ip)}`, POR_HORA_VISITANTE, "1 hour"))) return responder(429, { respuesta: TEXTOS.limiteVisitante });
+  const visitante = typeof cuerpo.visitante === "string" && /^[a-z0-9]{16,40}$/.test(cuerpo.visitante) ? cuerpo.visitante : null;
+  if (visitante && !(await permitido(`v:${visitante}`, POR_HORA_VISITANTE, "1 hour"))) return responder(429, { respuesta: TEXTOS.limiteVisitante });
+  // Sin código de navegador (página vieja en caché o un robot) solo cuenta el límite de la conexión, más estricto
+  if (!(await permitido(`ip:${await cifrar(ip)}`, visitante ? POR_HORA_CONEXION : POR_HORA_VISITANTE, "1 hour"))) return responder(429, { respuesta: TEXTOS.limiteVisitante });
   if (!(await permitido(`iglesia:${churchId}`, maxDia, "1 day"))) return responder(429, { respuesta: TEXTOS.limiteIglesia });
 
   const hoy = new Intl.DateTimeFormat("en-CA", { timeZone: iglesia.zona, year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
