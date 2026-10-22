@@ -17,11 +17,14 @@ on:
         required: false
         type: string
         default: ""
+      contexto:
+        description: "Uso interno: mensajes recientes de la conversación por WhatsApp (dejar vacío)"
+        required: false
+        type: string
+        default: ""
 
-# Un pedido a la vez, para que dos cambios no se pisen
-concurrency:
-  group: cambios
-  cancel-in-progress: false
+# Sin fila única: GitHub cancela los pedidos que quedan en espera si llega otro. Cada pedido corre por
+# su cuenta y, si dos guardan a la vez, agente/guardar.sh combina los cambios y reintenta.
 
 jobs:
   cambiar:
@@ -44,15 +47,25 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           CLIENTE: ${{ inputs.cliente }}
           PEDIDO: ${{ inputs.pedido }}
+          CONTEXTO: ${{ inputs.contexto }}
         run: node agente/agente.mjs
       - name: Guardar el cambio
         if: steps.agente.outputs.cambio == 'si'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          CLIENTE: ${{ inputs.cliente }}
+          PEDIDO: ${{ inputs.pedido }}
+          CONTEXTO: ${{ inputs.contexto }}
         run: |
-          git config user.name "agente-sitios"
-          git config user.email "agente-sitios@users.noreply.github.com"
-          git add clientes
-          git commit -F "$RUNNER_TEMP/mensaje-commit.txt"
-          git push
+          bash agente/guardar.sh "$RUNNER_TEMP/mensaje-commit.txt" && exit 0
+          # Chocó con otro cambio guardado al mismo tiempo (por ejemplo, dos pedidos seguidos que agregan eventos):
+          # se repite el pedido una vez sobre los datos ya actualizados.
+          echo "Se repite el pedido sobre los datos actualizados."
+          git fetch -q origin main && git reset -q --hard origin/main
+          node agente/agente.mjs || exit 1
+          bash agente/guardar.sh "$RUNNER_TEMP/mensaje-commit.txt" && exit 0
+          echo "⚠️ No pude hacer el cambio porque justo se guardó otro al mismo tiempo. Envíame el pedido de nuevo, por favor." > "$RUNNER_TEMP/respuesta-whatsapp.txt"
+          exit 1
       # Si el pedido llegó por WhatsApp, se le cuenta el resultado a quien lo hizo (pase lo que pase)
       - name: Avisar por WhatsApp
         if: always() && inputs.aviso != ''
