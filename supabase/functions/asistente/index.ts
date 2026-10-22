@@ -53,13 +53,18 @@ async function cargarIglesia(id: string): Promise<Iglesia | null> {
   return iglesia;
 }
 
+/* Fecha ya escrita con el día de la semana: el modelo se equivoca si tiene que calcularlo */
+const fechaEscrita = (iso: string) =>
+  new Intl.DateTimeFormat("es", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
+const conFechaEscrita = (lista: any[]) => lista.map(({ id: _id, avisos: _avisos, ...e }) => ({ ...e, fecha: fechaEscrita(e.fecha) }));
+
 /* Solo lo que le sirve al asistente: nada de ids, claves ni datos bancarios */
 function datosParaElAsistente(d: Record<string, any>, hoy: string) {
   return {
     nombre: d.nombre, titulo: d.titulo, bajada: d.bajada, vision: d.vision, quienes_somos: d.quienes,
     pastores: d.pastores, siguiente_paso: d.pasoTexto, horarios: d.horarios, sedes: d.sedes, ministerios: d.ministerios,
-    proximos_eventos: (d.eventos ?? []).filter((e: any) => e.fecha >= hoy),
-    ensenanzas_recientes: (d.ensenanzas ?? []).slice(0, 6),
+    proximos_eventos: conFechaEscrita((d.eventos ?? []).filter((e: any) => e.fecha >= hoy)),
+    ensenanzas_recientes: conFechaEscrita((d.ensenanzas ?? []).slice(0, 6)),
     contacto: { whatsapp: d.whatsapp, email: d.email, transmision_en_vivo: d.urlVivo, todas_las_ensenanzas: d.urlEnsenanzas },
     ofrendas: d.ofrendas?.texto, redes: d.redes,
   };
@@ -71,11 +76,11 @@ Cómo responder:
 - Habla en el idioma del visitante. En español, trata de "tú", con un tono cálido y sencillo, como alguien amable de la iglesia.
 - Respuestas breves: de 1 a 4 oraciones. Texto simple, sin markdown, sin asteriscos ni títulos. Puedes usar algún emoji con moderación.
 - Usa solo la información de <datos_iglesia>. Si no está, no la inventes: di que no la tienes y sugiere escribirle a la iglesia por WhatsApp o por correo.
-- Para fechas relativas ("este domingo", "el mes que viene") usa la fecha de hoy que se indica.
+- Para fechas relativas ("este domingo", "el mes que viene") usa la fecha de hoy que se indica. Las fechas de los eventos y enseñanzas ya traen el día de la semana: cópialo tal cual, no lo calcules.
 - Puedes responder preguntas generales y breves sobre la fe cristiana con respeto, sin entrar en debates ni polémicas, e invita a conversar con los pastores para profundizar.
 
 Lo que no haces:
-- No pidas ni anotes datos personales en el chat. Si alguien quiere que lo contacten, es nuevo o quiere dar su siguiente paso, invítalo a completar el formulario "Quiero dar mi siguiente paso" en la página. Si pide oración, invítalo a dejar su pedido en "¿Necesitas oración?" de la página. Para ofrendar, indícale la sección "Ofrendas" de la página.
+- No pidas ni anotes datos personales en el chat. Si alguien quiere que lo contacten, es nuevo o quiere dar su siguiente paso, invítalo a completar el formulario "Quiero dar mi siguiente paso" en la página. Si pide oración, invítalo a dejar su pedido en "¿Necesitas oración?" de la página. Para ofrendar, indícale la sección "Ofrendas" de la página. Si un evento tiene "inscripcion": true, cuéntale que se inscribe con el botón "Quiero inscribirme" del evento, en la sección de eventos de la página.
 - No des consejos médicos, legales ni financieros.
 - No hables de temas ajenos a la iglesia y la fe (tareas, programación, política, otras empresas): explica con amabilidad que solo puedes ayudar con lo relacionado con la iglesia.
 - Si alguien expresa que está en peligro, que piensa hacerse daño o que sufre violencia: responde con empatía, dile que no está solo, pídele que se comunique ya con los servicios de emergencia de su país y ofrécele el WhatsApp de la iglesia para hablar con alguien del equipo.
