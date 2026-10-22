@@ -18,6 +18,19 @@ export const LISTAS = {
   redes: ["nombre", "url"],
 };
 
+/* Campos opcionales de algunas listas: nombre -> cómo se valida.
+   Los eventos con inscripción llevan un id fijo, que une las inscripciones de la base con el evento. */
+export const AVISOS_INSCRIPCION = ["cada_inscripcion", "resumen_diario"];
+export const OPCIONALES = {
+  eventos: {
+    id: (v) => typeof v === "string" && /^[a-z0-9]{8}$/.test(v),
+    inscripcion: (v) => typeof v === "boolean",
+    cupo: (v) => Number.isInteger(v) && v >= 1 && v <= 10000,
+    avisos: (v) => AVISOS_INSCRIPCION.includes(v),
+  },
+};
+const nuevoId = () => Array.from({ length: 8 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
+
 /* Lo que el agente NO puede tocar: nombre, whatsapp, email y todo "ofrendas"
    (adonde va el dinero). Eso se cambia a mano en el archivo del cliente. */
 
@@ -49,16 +62,24 @@ export function erroresDeLista(lista, elementos) {
   if (!campos) return [`"${lista}" no es una lista que se pueda cambiar.`];
   if (!Array.isArray(elementos)) return [`${lista}: tiene que ser una lista.`];
   if (elementos.length > MAX_ELEMENTOS) return [`${lista}: admite hasta ${MAX_ELEMENTOS} elementos.`];
+  const opcionales = OPCIONALES[lista] ?? {};
+  const validos = [...campos, ...Object.keys(opcionales)];
   const errores = [];
+  const ids = new Set();
   elementos.forEach((e, i) => {
     const donde = `${lista}[${i}]`;
     if (e === null || typeof e !== "object" || Array.isArray(e)) { errores.push(`${donde}: tiene que ser un objeto.`); return; }
-    for (const k of Object.keys(e)) if (!campos.includes(k)) errores.push(`${donde}: el campo "${k}" no existe. Campos válidos: ${campos.join(", ")}.`);
+    for (const k of Object.keys(e)) if (!validos.includes(k)) errores.push(`${donde}: el campo "${k}" no existe. Campos válidos: ${validos.join(", ")}.`);
     for (const k of campos) {
       if (k === "fecha") { if (!esFecha(e[k])) errores.push(`${donde}.fecha: tiene que ser una fecha real con formato AAAA-MM-DD.`); }
       else if (k === "url") { if (!esUrl(e[k])) errores.push(`${donde}.url: tiene que ser una dirección completa que empiece con https://`); }
       else if (!esTexto(e[k])) errores.push(`${donde}.${k}: falta o es demasiado largo (máximo ${MAX_TEXTO} caracteres).`);
     }
+    for (const [k, valido] of Object.entries(opcionales)) {
+      if (e[k] !== undefined && !valido(e[k])) errores.push(`${donde}.${k}: valor inválido.` +
+        (k === "cupo" ? " Tiene que ser un número entero de personas, de 1 a 10000." : k === "avisos" ? ` Opciones: ${AVISOS_INSCRIPCION.join(", ")}.` : ""));
+    }
+    if (e.id !== undefined) { if (ids.has(e.id)) errores.push(`${donde}.id: está repetido.`); ids.add(e.id); }
   });
   return errores;
 }
@@ -77,6 +98,9 @@ export function erroresDeDatos(datos) {
   for (const c of ["texto", "alias", "titular", "banco"]) if (!esTexto(leer(datos, `ofrendas.${c}`))) errores.push(`ofrendas.${c}: falta.`);
   if (!esUrl(leer(datos, "ofrendas.mercadopago"))) errores.push("ofrendas.mercadopago: tiene que empezar con https://");
   for (const lista of Object.keys(LISTAS)) errores.push(...erroresDeLista(lista, datos[lista]));
+  (Array.isArray(datos.eventos) ? datos.eventos : []).forEach((e, i) => {
+    if (e?.inscripcion && !e.id) errores.push(`eventos[${i}]: tiene inscripción pero le falta el id.`);
+  });
   return errores;
 }
 
@@ -97,6 +121,19 @@ export function reemplazarLista(datos, lista, elementos) {
   const errores = erroresDeLista(lista, elementos);
   if (errores.length) return errores.join("\n");
   const campos = LISTAS[lista];
-  datos[lista] = elementos.map((e) => Object.fromEntries(campos.map((k) => [k, k === "fecha" || k === "url" ? e[k] : e[k].trim()])));
+  const opcionales = Object.keys(OPCIONALES[lista] ?? {});
+  const anteriores = Array.isArray(datos[lista]) ? datos[lista] : [];
+  const usados = new Set(elementos.map((e) => e.id).filter(Boolean));
+  datos[lista] = elementos.map((e) => {
+    const nuevo = Object.fromEntries(campos.map((k) => [k, k === "fecha" || k === "url" ? e[k] : e[k].trim()]));
+    for (const k of opcionales) if (e[k] !== undefined) nuevo[k] = e[k];
+    /* Un evento con inscripción conserva su id (si el agente no lo mandó, se busca el mismo evento de antes) */
+    if (lista === "eventos" && nuevo.inscripcion && !nuevo.id) {
+      const previo = anteriores.find((a) => a.id && !usados.has(a.id) && a.titulo === nuevo.titulo && a.fecha === nuevo.fecha);
+      nuevo.id = previo?.id ?? nuevoId();
+      usados.add(nuevo.id);
+    }
+    return nuevo;
+  });
   return null;
 }
