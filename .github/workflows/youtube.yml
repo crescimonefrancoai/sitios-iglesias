@@ -11,7 +11,7 @@ on:
         type: string
 
 concurrency:
-  group: cambios
+  group: youtube
   cancel-in-progress: false
 
 jobs:
@@ -37,12 +37,7 @@ jobs:
         run: node agente/youtube.mjs
       - name: Guardar las enseñanzas
         if: steps.youtube.outputs.cambio == 'si'
-        run: |
-          git config user.name "agente-sitios"
-          git config user.email "agente-sitios@users.noreply.github.com"
-          git add clientes
-          git commit -F "$RUNNER_TEMP/mensaje-commit.txt"
-          git push
+        run: bash agente/guardar.sh "$RUNNER_TEMP/mensaje-commit.txt"
       - name: Marcar si algún canal falló
         if: steps.youtube.outputs.fallas != '0'
         run: |
@@ -57,4 +52,3 @@ jobs:
       pages: write
       id-token: write
     uses: ./.github/workflows/publicar.yml
-
