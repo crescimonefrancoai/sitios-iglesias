@@ -8,6 +8,11 @@
                           bienvenida a la visita y recordatorios de seguimiento. No recibe datos y cada cosa se
                           manda una sola vez, así que lo puede llamar cualquiera: la página web después de cada
                           formulario y GitHub una vez por hora (avisos.yml), por si algo quedó sin mandar.
+                          Entre el 1 y el 5 de cada mes manda también el reporte mensual al equipo.
+                          También manda lo de los eventos con inscripción: confirmación al inscrito, aviso o
+                          resumen diario al equipo y recordatorio el día anterior.
+   POST /whatsapp/inscribir   La página inscribe a alguien en un evento (revisa el evento y el cupo).
+   POST /whatsapp/cupos       La página consulta cuántos lugares están ocupados en cada evento.
                           Usa plantillas de WhatsApp aprobadas en Meta (ver LEEME.md).
 
    Secretos (Supabase -> Edge Functions -> Secrets):
@@ -26,7 +31,7 @@ const MAX_PEDIDO = 2000;
 
 const TEXTOS = {
   recibido: "Recibido 🙌 Estoy haciendo el cambio y te aviso cuando esté listo.",
-  noAutorizado: "Hola 👋 Este número todavía no está habilitado para hacer cambios en la página. Si eres parte de una iglesia que trabaja con Eklesic, pide que lo habiliten.",
+  noAutorizado: "Hola 👋 Este número envía avisos automáticos y no puede responder mensajes. Para hablar con tu iglesia, escríbele a su WhatsApp: lo encuentras en su página web. Si eres parte del equipo de una iglesia que trabaja con Eklesic, pide que habiliten tu número.",
   soloTexto: "Por ahora solo entiendo mensajes de texto. Escríbeme el cambio que necesitas 🙂",
   muyLargo: `El mensaje es muy largo. Escríbeme el cambio en menos de ${MAX_PEDIDO} caracteres, por favor.`,
   falla: "No pude tomar tu pedido en este momento. Vuelve a intentarlo en unos minutos, por favor.",
@@ -122,7 +127,19 @@ function telefonoWhatsApp(escrito: string | null, pais: string | null) {
   return null;
 }
 
-async function pedirAlAgente(cliente: string, pedido: string, aviso: string) {
+/* Los mensajes de los últimos 30 minutos con esa persona, para que el agente entienda respuestas a sus preguntas */
+async function conversacionReciente(telefono: string, idActual: string) {
+  const desde = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+  const { data } = await db.from("whatsapp_mensajes").select("id, texto, respuesta")
+    .eq("telefono", telefono).gte("created_at", desde).neq("id", idActual)
+    .order("created_at", { ascending: false }).limit(5);
+  return (data ?? []).reverse()
+    .filter((m) => m.texto)
+    .map((m) => `Pastor: ${m.texto}` + (m.respuesta ? `\nEklesic: ${m.respuesta}` : ""))
+    .join("\n\n");
+}
+
+async function pedirAlAgente(cliente: string, pedido: string, aviso: string, contexto = "") {
   const r = await fetch(`https://api.github.com/repos/${env("GITHUB_REPO")}/actions/workflows/agente.yml/dispatches`, {
     method: "POST",
     headers: {
@@ -131,7 +148,7 @@ async function pedirAlAgente(cliente: string, pedido: string, aviso: string) {
       "X-GitHub-Api-Version": "2022-11-28",
       "User-Agent": "eklesic-whatsapp",
     },
-    body: JSON.stringify({ ref: "main", inputs: { cliente, pedido, aviso } }),
+    body: JSON.stringify({ ref: "main", inputs: { cliente, pedido, aviso, contexto: contexto.slice(0, 6000) } }),
   });
   if (!r.ok) console.error("GitHub no aceptó el pedido:", r.status, await r.text());
   return r.ok;
@@ -173,7 +190,7 @@ async function procesarMensaje(msg: any) {
   }
 
   // Al agente solo le pasamos el id del mensaje (no el teléfono): las ejecuciones de GitHub pueden ser públicas
-  if (await pedirAlAgente(slug, texto, fila.id)) {
+  if (await pedirAlAgente(slug, texto, fila.id, await conversacionReciente(telefono, fila.id))) {
     await marcar(fila.id, { estado: "enviado_al_agente" });
     await enviarWhatsApp(telefono, TEXTOS.recibido);
   } else {
@@ -206,18 +223,19 @@ async function devolverResultado(req: Request) {
 
 /* ---------- Avisos automáticos ---------- */
 
-type Iglesia = { nombre: string; pais: string | null; zona: string; idioma: string; diasSeguimiento: number; equipo: string[] };
+type Iglesia = { nombre: string; slug: string; pais: string | null; zona: string; idioma: string; diasSeguimiento: number; equipo: string[] };
 const iglesias = new Map<string, Promise<Iglesia | null>>();
 
 function datosIglesia(id: string) {
   if (!iglesias.has(id)) iglesias.set(id, (async () => {
-    const { data: c } = await db.from("churches").select("name, country, timezone, settings").eq("id", id).maybeSingle();
+    const { data: c } = await db.from("churches").select("name, slug, country, timezone, settings").eq("id", id).maybeSingle();
     if (!c) return null;
     const { data: nums } = await db.from("whatsapp_autorizados").select("telefono")
       .eq("church_id", id).eq("activo", true).eq("recibe_avisos", true);
     const s = (c.settings ?? {}) as Record<string, unknown>;
     return {
       nombre: c.name,
+      slug: c.slug,
       pais: c.country,
       zona: c.timezone || "UTC",
       idioma: typeof s.idioma === "string" ? s.idioma : "es",
@@ -284,9 +302,259 @@ async function recordarSeguimientos() {
   }
 }
 
+/* ---------- Reporte mensual ---------- */
+
+/* Fecha y hora "de pared" en la zona de la iglesia */
+function partesLocales(t: number, zona: string) {
+  const p = Object.fromEntries(new Intl.DateTimeFormat("en-CA", {
+    timeZone: zona, year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
+  }).formatToParts(new Date(t)).map((x) => [x.type, Number(x.value)]));
+  return { anio: p.year, mes: p.month, dia: p.day, hora: p.hour, minuto: p.minute, segundo: p.second };
+}
+/* Instante en que empieza el día 1 de ese mes en la zona de la iglesia */
+function inicioDeMes(anio: number, mes: number, zona: string) {
+  const aprox = Date.UTC(anio, mes - 1, 1);
+  const l = partesLocales(aprox, zona);
+  const desfase = Date.UTC(l.anio, l.mes - 1, l.dia, l.hora, l.minuto, l.segundo) - aprox;
+  return new Date(aprox - desfase);
+}
+
+const MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+const urlPanel = () => {
+  if (env("PANEL_URL")) return env("PANEL_URL");
+  const [dueno, repo] = env("GITHUB_REPO").split("/");
+  return `https://${dueno.toLowerCase()}.github.io/${repo}/panel/`;
+};
+
+/* Las enseñanzas y los eventos están en el archivo del cliente en GitHub, no en la base.
+   Se guarda unos minutos para no pedirlo en cada inscripción. */
+// deno-lint-ignore no-explicit-any
+const archivos = new Map<string, { hasta: number; datos: Promise<any> }>();
+function archivoCliente(slug: string) {
+  const guardado = archivos.get(slug);
+  if (guardado && guardado.hasta > Date.now()) return guardado.datos;
+  const datos = fetch(`https://raw.githubusercontent.com/${env("GITHUB_REPO")}/main/clientes/${slug}.json`)
+    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+  archivos.set(slug, { hasta: Date.now() + 3 * 60 * 1000, datos });
+  return datos;
+}
+
+async function ensenanzasDelMes(slug: string, prefijo: string) {
+  const datos = await archivoCliente(slug);
+  if (!datos) return "sin datos";
+  return (datos.ensenanzas ?? []).filter((e: { fecha?: string }) => e.fecha?.startsWith(prefijo)).length;
+}
+
+async function enviarReportesMensuales() {
+  const { data: lista } = await db.from("churches").select("id");
+  for (const { id } of lista ?? []) {
+    const ig = await datosIglesia(id);
+    if (!ig || !ig.equipo.length) continue;
+    const ahora = partesLocales(Date.now(), ig.zona);
+    // Del 1 al 5, en horario de la iglesia. Para probarlo otro día: secreto REPORTE_CUALQUIER_DIA = si (y borrarlo después)
+    if ((ahora.dia > 5 && env("REPORTE_CUALQUIER_DIA") !== "si") || ahora.hora < 9 || ahora.hora >= 20) continue;
+
+    const anio = ahora.mes === 1 ? ahora.anio - 1 : ahora.anio;
+    const mes = ahora.mes === 1 ? 12 : ahora.mes - 1;
+    const prefijo = `${anio}-${String(mes).padStart(2, "0")}`;
+    const desde = inicioDeMes(anio, mes, ig.zona).toISOString();
+    const hasta = inicioDeMes(ahora.anio, ahora.mes, ig.zona).toISOString();
+
+    // Se registra antes de mandar: si dos llamadas llegan juntas, solo una manda el reporte
+    const { data: nuevo } = await db.from("reportes_mensuales")
+      .upsert({ church_id: id, mes: `${prefijo}-01` }, { onConflict: "church_id,mes", ignoreDuplicates: true })
+      .select("church_id").maybeSingle();
+    if (!nuevo) continue;
+
+    const deLaWeb = () => db.from("people").select("id", { count: "exact", head: true })
+      .eq("church_id", id).eq("source", "web_form").gte("created_at", desde).lt("created_at", hasta);
+    const [{ count: registradas }, { count: pendientes }, { count: oraciones }, ensenanzas] = await Promise.all([
+      deLaWeb(),
+      deLaWeb().eq("status", "prospect").is("contactado_at", null),
+      db.from("prayer_requests").select("id", { count: "exact", head: true }).eq("church_id", id).gte("created_at", desde).lt("created_at", hasta),
+      ensenanzasDelMes(ig.slug, prefijo),
+    ]);
+    const total = registradas ?? 0, sinContactar = pendientes ?? 0;
+    await avisarEquipo(ig, "reporte_mensual", [
+      `${MESES[mes - 1]} ${anio}`, total, total - sinContactar, sinContactar, oraciones ?? 0, ensenanzas, urlPanel(),
+    ]);
+  }
+}
+
+/* ---------- Eventos con inscripción ---------- */
+
+type Evento = { id: string; titulo: string; fecha: string; hora: string; lugar: string; inscripcion?: boolean; cupo?: number; avisos?: string };
+
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "content-type" };
+const responderJson = (estado: number, cuerpo: unknown) =>
+  new Response(JSON.stringify(cuerpo), { status: estado, headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" } });
+
+const hoyEn = (zona: string, masDias = 0) => new Intl.DateTimeFormat("en-CA", { timeZone: zona, year: "numeric", month: "2-digit", day: "2-digit" })
+  .format(new Date(Date.now() + masDias * 86400000));
+const fechaLarga = (iso: string) => new Intl.DateTimeFormat("es", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })
+  .format(new Date(`${iso}T12:00:00Z`));
+const primerNombre = (nombre: string) => nombre.trim().split(/\s+/)[0];
+/* "a las 10:00" si es una hora; si no, el texto tal cual en minúscula ("todo el día") */
+const horaTexto = (hora?: string) => !hora ? "en horario a confirmar" : /^\d{1,2}([:.]\d{2})?\s*(h|hs)?$/i.test(hora.trim()) ? `a las ${hora.trim()}` : hora.trim().toLowerCase();
+const cuandoTexto = (fecha: string, hora?: string) => `${fechaLarga(fecha)}, ${horaTexto(hora)}`;
+const esUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
+async function eventosConInscripcion(slug: string): Promise<Evento[]> {
+  const datos = await archivoCliente(slug);
+  return (datos?.eventos ?? []).filter((e: Evento) => e.inscripcion && e.id);
+}
+
+/* Personas inscritas por evento (cada inscripción cuenta 1 + sus acompañantes) */
+async function ocupadosPorEvento(churchId: string, eventoId?: string) {
+  // Se cuenta en la base (8-inscripciones.sql): una consulta común trae como máximo 1000 filas
+  const { data, error } = await db.rpc("ocupados_por_evento", { p_church: churchId, p_evento: eventoId ?? null });
+  if (error) console.error("No se pudieron contar las inscripciones:", error.message);
+  const ocupados: Record<string, number> = {};
+  for (const fila of (data ?? []) as { evento_id: string; ocupados: number }[]) ocupados[fila.evento_id] = Number(fila.ocupados);
+  return ocupados;
+}
+const inscritosTexto = (total: number, cupo?: number) => (cupo ? `${total} de ${cupo}` : String(total));
+
+async function cifrar(texto: string) {
+  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(texto + env("SUPABASE_URL"))));
+  return Array.from(bytes.slice(0, 12), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// deno-lint-ignore no-explicit-any
+async function leerJson(req: Request): Promise<any> {
+  try { return JSON.parse(await req.text()); } catch { return null; }
+}
+
+/* POST /whatsapp/cupos { churchId } -> lugares ocupados de cada evento con inscripción */
+async function cupos(req: Request) {
+  const c = await leerJson(req);
+  if (!esUuid(c?.churchId)) return responderJson(400, { error: "faltan datos" });
+  return responderJson(200, { ocupados: await ocupadosPorEvento(c.churchId) });
+}
+
+/* POST /whatsapp/inscribir { churchId, eventoId, nombre, telefono, email, acompanantes, acepto, web } */
+async function inscribir(req: Request) {
+  const c = await leerJson(req);
+  if (!c) return responderJson(400, { error: "No pudimos leer los datos." });
+  if (c.web) return responderJson(200, { ok: true, mensaje: "¡Listo!" }); // campo trampa: solo lo completan los robots
+  const ig = esUuid(c.churchId) ? await datosIglesia(c.churchId) : null;
+  if (!ig) return responderJson(404, { error: "No encontramos la iglesia." });
+  const evento = (await eventosConInscripcion(ig.slug)).find((e) => e.id === c.eventoId);
+  if (!evento) return responderJson(404, { error: "Este evento ya no tiene la inscripción abierta." });
+  if (evento.fecha < hoyEn(ig.zona)) return responderJson(409, { error: "Este evento ya pasó." });
+
+  const nombre = String(c.nombre ?? "").replace(/\s+/g, " ").trim().slice(0, 120);
+  const telefono = String(c.telefono ?? "").trim().slice(0, 40) || null;
+  const email = String(c.email ?? "").trim().slice(0, 160) || null;
+  const acompanantes = Number.isInteger(c.acompanantes) && c.acompanantes >= 0 && c.acompanantes <= 20 ? c.acompanantes : 0;
+  if (!nombre) return responderJson(400, { error: "Escribe tu nombre." });
+  if (!telefono && !email) return responderJson(400, { error: "Déjanos un teléfono o un correo para confirmarte." });
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return responderJson(400, { error: "Revisa tu correo: no parece completo." });
+  if (c.acepto !== true) return responderJson(400, { error: "Para inscribirte, marca que aceptas que guardemos tus datos." });
+
+  const ip = (req.headers.get("x-forwarded-for") ?? "").split(",")[0].trim() || "sin-ip";
+  // Alto a propósito: en el culto cientos de personas comparten el WiFi de la iglesia (una sola IP).
+  // Las inscripciones repetidas ya las frena la base (mismo teléfono o correo en el mismo evento).
+  const { data: permitido } = await db.rpc("asistente_permitido", { p_clave: `insc:${await cifrar(ip)}`, p_maximo: 200, p_ventana: "1 hour" });
+  if (permitido !== true) return responderJson(429, { error: "Recibimos muchas inscripciones seguidas desde tu conexión. Intenta en un rato." });
+
+  const { data: resultado, error } = await db.rpc("inscribir", {
+    p_church: c.churchId, p_evento: evento.id, p_titulo: evento.titulo, p_fecha: evento.fecha, p_cupo: evento.cupo ?? null,
+    p_nombre: nombre, p_telefono: telefono, p_email: email, p_acompanantes: acompanantes,
+  });
+  if (error) { console.error("No se pudo inscribir:", error.message); return responderJson(500, { error: "No pudimos guardar tu inscripción. Intenta de nuevo en unos minutos." }); }
+  if (resultado === "sin_cupo") return responderJson(409, { error: "No quedan lugares suficientes para este evento." });
+  if (resultado === "repetido") return responderJson(200, { ok: true, mensaje: "Ya estabas inscrito en este evento. ¡Te esperamos!" });
+
+  EdgeRuntime.waitUntil(procesarPendientes()); // confirmación y aviso al equipo, ya mismo
+  return responderJson(200, { ok: true, mensaje: `¡Listo, ${primerNombre(nombre)}! Ya estás inscrito. Te esperamos el ${cuandoTexto(evento.fecha, evento.hora)}.` });
+}
+
+/* Marca todas las inscripciones pendientes de un evento (por filtro: una lista de ids en la consulta
+   no entra cuando son cientos). Devuelve las que marcó esta llamada. */
+const marcarDelEvento = (churchId: string, eventoId: string, columna: string) =>
+  db.from("inscripciones").update({ [columna]: new Date().toISOString() })
+    .eq("church_id", churchId).eq("evento_id", eventoId).is(columna, null).select("id");
+
+async function eventoDe(ig: Iglesia, eventoId: string) {
+  return (await eventosConInscripcion(ig.slug)).find((e) => e.id === eventoId);
+}
+
+/* Hace las tareas de a varias a la vez: WhatsApp acepta muchos mensajes por segundo, y así un evento
+   grande no se pasa del tiempo máximo de la función. Cada tarea que falla no frena a las demás. */
+async function enLotes<T>(items: T[], tamano: number, tarea: (item: T) => Promise<unknown>) {
+  for (let i = 0; i < items.length; i += tamano) {
+    await Promise.all(items.slice(i, i + tamano).map((x) => tarea(x).catch((e) => console.error("Falló un envío:", e))));
+  }
+}
+
+/* Confirmación a quien se inscribió y, en los eventos "cada_inscripcion", aviso al equipo */
+async function avisarInscripciones() {
+  const { data: confirmar } = await db.from("inscripciones").select("*").is("confirmacion_enviada_at", null).order("created_at").limit(200);
+  await enLotes(confirmar ?? [], 10, async (r) => {
+    if (!(await tomar("inscripciones", "confirmacion_enviada_at", r.id))) return;
+    const ig = await datosIglesia(r.church_id);
+    const tel = ig && telefonoWhatsApp(r.telefono, ig.pais);
+    if (!ig || !tel) return;
+    const ev = await eventoDe(ig, r.evento_id);
+    await enviarPlantilla(tel, "confirmacion_inscripcion", ig.idioma, [
+      primerNombre(r.nombre), ev?.titulo ?? r.evento_titulo, cuandoTexto(ev?.fecha ?? r.evento_fecha, ev?.hora), ev?.lugar ?? "el lugar que confirmaremos",
+    ]);
+  });
+
+  const { data: avisar } = await db.from("inscripciones").select("*").is("aviso_enviado_at", null).order("created_at").limit(50);
+  for (const r of avisar ?? []) {
+    if (!(await tomar("inscripciones", "aviso_enviado_at", r.id))) continue;
+    const ig = await datosIglesia(r.church_id);
+    if (!ig) continue;
+    const ev = await eventoDe(ig, r.evento_id);
+    if (ev?.avisos === "resumen_diario") continue; // esos van en el resumen del día
+    const total = (await ocupadosPorEvento(r.church_id, r.evento_id))[r.evento_id] ?? 0;
+    await avisarEquipo(ig, "aviso_inscripcion", [ev?.titulo ?? r.evento_titulo, r.nombre, r.acompanantes, inscritosTexto(total, ev?.cupo)]);
+  }
+}
+
+/* Resumen del día al equipo (eventos con avisos "resumen_diario"), entre las 19 y las 20 de la iglesia */
+async function resumirInscripciones() {
+  // Solo hace falta saber qué eventos tienen inscripciones sin resumir; el conteo sale al marcarlas
+  const { data } = await db.from("inscripciones").select("church_id, evento_id, evento_titulo").is("resumen_enviado_at", null).limit(1000);
+  const eventos = new Map<string, { church_id: string; evento_id: string; evento_titulo: string }>();
+  for (const r of data ?? []) eventos.set(`${r.church_id}|${r.evento_id}`, r);
+  for (const { church_id, evento_id, evento_titulo } of eventos.values()) {
+    const ig = await datosIglesia(church_id);
+    const ev = ig && await eventoDe(ig, evento_id);
+    if (!ig || ev?.avisos !== "resumen_diario") { await marcarDelEvento(church_id, evento_id, "resumen_enviado_at"); continue; } // no corresponde resumen
+    if (horaLocal(ig.zona) !== 19) continue;
+    const { data: tomadas } = await marcarDelEvento(church_id, evento_id, "resumen_enviado_at");
+    if (!tomadas?.length) continue;
+    const total = (await ocupadosPorEvento(church_id, evento_id))[evento_id] ?? 0;
+    await avisarEquipo(ig, "resumen_inscripciones", [ev.titulo ?? evento_titulo, tomadas.length, inscritosTexto(total, ev.cupo)]);
+  }
+}
+
+/* Recordatorio a cada inscrito el día anterior al evento, entre las 9 y las 20 de la iglesia */
+async function recordarEventos() {
+  const { data } = await db.from("inscripciones").select("*").is("recordatorio_enviado_at", null)
+    .lte("evento_fecha", hoyEn("UTC", 2)).order("evento_fecha").limit(500);
+  await enLotes(data ?? [], 10, async (r) => {
+    const ig = await datosIglesia(r.church_id);
+    if (!ig) return;
+    const manana = hoyEn(ig.zona, 1);
+    if (r.evento_fecha < manana) { await tomar("inscripciones", "recordatorio_enviado_at", r.id); return; } // ya es hoy o pasó: no corresponde
+    const hora = horaLocal(ig.zona);
+    if (r.evento_fecha !== manana || hora < 9 || hora >= 20) return;
+    if (!(await tomar("inscripciones", "recordatorio_enviado_at", r.id))) return;
+    const tel = telefonoWhatsApp(r.telefono, ig.pais);
+    if (!tel) return;
+    const ev = await eventoDe(ig, r.evento_id);
+    await enviarPlantilla(tel, "recordatorio_evento", ig.idioma, [primerNombre(r.nombre), ev?.titulo ?? r.evento_titulo, horaTexto(ev?.hora), ev?.lugar ?? "el lugar que confirmaremos"]);
+  });
+}
+
 async function procesarPendientes() {
   iglesias.clear();
-  for (const tarea of [avisarVisitasNuevas, avisarPedidosDeOracion, recordarSeguimientos]) {
+  for (const tarea of [avisarVisitasNuevas, avisarPedidosDeOracion, recordarSeguimientos, enviarReportesMensuales,
+    avisarInscripciones, resumirInscripciones, recordarEventos]) {
     try { await tarea(); } catch (e) { console.error(`Falló ${tarea.name}:`, e); }
   }
 }
@@ -299,8 +567,11 @@ Deno.serve(async (req) => {
     const ok = p.get("hub.mode") === "subscribe" && iguales(p.get("hub.verify_token") ?? "", env("WHATSAPP_VERIFY_TOKEN"));
     return ok ? responder(200, p.get("hub.challenge") ?? "") : responder(403, "token incorrecto");
   }
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return responder(405, "método no permitido");
 
+  if (url.pathname.endsWith("/inscribir")) return inscribir(req);
+  if (url.pathname.endsWith("/cupos")) return cupos(req);
   if (url.pathname.endsWith("/aviso")) return devolverResultado(req);
   if (url.pathname.endsWith("/pendientes")) {
     EdgeRuntime.waitUntil(procesarPendientes());
