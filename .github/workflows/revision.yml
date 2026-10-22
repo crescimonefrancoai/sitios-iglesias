@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: cambios
+  group: revision
   cancel-in-progress: false
 
 jobs:
@@ -33,11 +33,8 @@ jobs:
             echo "cambio=no" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git config user.name "agente-sitios"
-          git config user.email "agente-sitios@users.noreply.github.com"
-          git add clientes
-          git commit -m "Revisión semanal: limpieza de eventos vencidos"
-          git push
+          echo "Revisión semanal: limpieza de eventos vencidos" > "$RUNNER_TEMP/mensaje-revision.txt"
+          bash agente/guardar.sh "$RUNNER_TEMP/mensaje-revision.txt"
           echo "cambio=si" >> "$GITHUB_OUTPUT"
       - name: Avisar lo que hay que revisar
         if: steps.revision.outputs.avisos == 'si'
