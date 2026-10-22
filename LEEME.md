@@ -100,6 +100,29 @@ Por defecto entran prédicas, cultos y estudios, y quedan afuera anuncios y clip
 
 Para probarlo sin esperar: **Actions → Enseñanzas desde YouTube → Run workflow**.
 
+## Eventos con inscripción
+
+Un evento del archivo del cliente puede llevar inscripción. Lo crea el pastor por WhatsApp ("Agregá el retiro el 7 de noviembre en Quinta Los Sauces, con inscripción, cupo 40"); si no dice cómo quiere enterarse de las inscripciones, el agente le pregunta antes de crearlo.
+
+```json
+{ "titulo": "Retiro de matrimonios", "fecha": "2026-11-07", "hora": "Todo el día", "lugar": "Quinta Los Sauces",
+  "inscripcion": true, "cupo": 40, "avisos": "resumen_diario", "id": "k3x9a2pq" }
+```
+
+- `cupo` es opcional (sin cupo, no hay límite). Cada inscripción ocupa 1 lugar más sus acompañantes.
+- `avisos`: `cada_inscripcion` (un WhatsApp al equipo por cada persona) o `resumen_diario` (un resumen entre las 19 y las 20 de la iglesia).
+- `id` lo crea el sistema y une el evento con sus inscripciones: no se cambia.
+- En la página: botón **Quiero inscribirme**, "Quedan N lugares" e "Inscripciones cerradas" cuando se llena. El formulario pide nombre, teléfono o correo, acompañantes y aceptación de datos.
+- Mensajes: confirmación al inscrito, aviso o resumen al equipo, y recordatorio al inscrito el día anterior (entre las 9 y las 20).
+- En el panel: pestaña **Inscripciones**, con la lista por evento y la descarga en planilla.
+- La inscripción pasa por la función `whatsapp` (`/inscribir`), que revisa que el evento exista, no haya pasado y tenga lugar. Una misma persona (teléfono o correo) no se inscribe dos veces al mismo evento. Límite: 200 inscripciones por hora desde una misma conexión (alto a propósito, por el WiFi del templo).
+
+```
+base-de-datos/8-inscripciones.sql   Tabla de inscripciones y control del cupo
+```
+
+**Memoria corta del agente de WhatsApp**: el agente ve los mensajes de los últimos 30 minutos con la misma persona, así entiende respuestas a sus preguntas ("resumen por día").
+
 ## Asistente de la página
 
 Una burbuja "¿Tienes una pregunta?" abre un chat que responde a los visitantes con la información de su iglesia: horarios, sedes, ministerios, próximos eventos, enseñanzas y contacto. Aparece solo en los sitios conectados a la base de datos.
@@ -112,10 +135,28 @@ base-de-datos/7-asistente.sql          Límites de uso
 - Lee los datos de la iglesia del archivo del cliente en GitHub (cada 10 minutos como mucho), sin ids, claves ni datos bancarios.
 - **No pide datos personales**: a quien quiere que lo contacten o pide oración lo lleva a los formularios de la página, que ya tienen el consentimiento y disparan los avisos.
 - **No guarda las conversaciones.**
-- Límites: 20 mensajes por hora por visitante y 300 por día por iglesia (`settings.asistente_max_dia`). Para apagarlo en una iglesia: `settings.asistente = false` en la base, o `"asistente": false` en su archivo.
+- Límites: 20 mensajes por hora por navegador (cada navegador guarda un código al azar, sin datos personales), 300 por hora por conexión (en el culto muchas personas comparten el WiFi del templo) y 1000 por día por iglesia (`settings.asistente_max_dia`). Para apagarlo en una iglesia: `settings.asistente = false` en la base, o `"asistente": false` en su archivo.
 - Usa Claude Haiku 4.5 (el modelo económico de Claude, suficiente para estas preguntas): cada mensaje cuesta del orden de medio centavo de dólar.
 
 Instalación: crear la función `asistente` en Supabase (Edge Functions → Deploy a new function → Via Editor) con el código de `index.ts`, **con la verificación de JWT apagada**, y agregar el secreto `ANTHROPIC_API_KEY`. Ejecutar `7-asistente.sql`.
+
+## Escala: iglesias grandes y varias iglesias a la vez
+
+Preparado para iglesias de 2000 personas o más:
+
+- **Panel**: trae personas e inscripciones por tandas de 1000 (Supabase entrega como máximo 1000 filas por consulta), así no falta nadie en la lista, los contadores ni la planilla.
+- **Cupos**: se cuentan en la base (`ocupados_por_evento`, en `8-inscripciones.sql`), sin tope de filas.
+- **Mensajes masivos** (confirmaciones y recordatorios de un evento grande): salen de a 10 en paralelo, hasta 500 por pasada; la tarea de cada hora sigue con lo que falte.
+- **Pedidos simultáneos**: el agente, YouTube y la revisión semanal no hacen fila (GitHub cancelaría los pedidos en espera). Guardan con `agente/guardar.sh`: si otro proceso guardó al mismo tiempo, combina los cambios, revisa que los datos sigan válidos y reintenta. Si dos pedidos tocan los mismos datos, el agente repite el pedido una vez sobre los datos nuevos.
+
+Límites de los servicios que conviene revisar antes de vender:
+
+| Servicio | Límite que importa | Qué hacer |
+|---|---|---|
+| WhatsApp (Meta) | El número de prueba solo llega a 5 números. Con número real, Meta limita a cuántas personas distintas se les puede escribir primero por día, para todo el portafolio Eklesic junto; empieza bajo y sube con la verificación del negocio y la calidad de los mensajes. | Número real y verificación del negocio antes del primer cliente. |
+| Supabase (plan gratis) | Sin copias de seguridad automáticas, el proyecto se pausa si queda inactivo y tiene topes de base de datos, transferencia y llamadas a funciones. | Plan Pro cuando haya clientes: copias diarias y sin pausas. |
+| API de Claude | Límite de pedidos por minuto según el nivel de la cuenta; sube con el uso y el crédito cargado. | Revisar Settings → Limits en console.anthropic.com. |
+| GitHub Pages | Pensado para sitios institucionales, no para alojar comercialmente sitios de clientes; tope de transferencia mensual y de publicaciones por hora, compartido por todos los sitios del repositorio. | Para clientes que pagan, evaluar Cloudflare Pages o Netlify con dominio propio. |
 
 ## Agregar una iglesia
 
@@ -203,5 +244,25 @@ Ejemplos: `Ana` · `Iglesia Puerto Seguro`
 > Puedes ver el detalle de cada persona en el panel: {{7}} . Dios te bendiga.
 
 Ejemplos: `octubre 2026` · `5` · `3` · `2` · `4` · `2` · `https://crescimonefrancoai.github.io/sitios-iglesias/panel/`
+
+**`confirmacion_inscripcion`**
+> Hola {{1}}, tu inscripción a {{2}} quedó confirmada. Te esperamos el {{3}}, en {{4}}. Dios te bendiga.
+
+Ejemplos: `Ana` · `Retiro de matrimonios` · `sábado, 7 de noviembre, a las 10:00` · `Sede central`
+
+**`recordatorio_evento`**
+> Hola {{1}}, te recordamos que mañana es {{2}}, {{3}}, en {{4}}. Dios te bendiga.
+
+Ejemplos: `Ana` · `Retiro de matrimonios` · `a las 10:00` · `Quinta Los Sauces`
+
+**`aviso_inscripcion`**
+> Nueva inscripción a {{1}}: {{2}} se anotó con {{3}} acompañantes. Ya hay {{4}} personas inscritas. Puedes ver la lista en el panel.
+
+Ejemplos: `Retiro de matrimonios` · `Ana López` · `1` · `12 de 40`
+
+**`resumen_inscripciones`**
+> Tu evento {{1}} recibió {{2}} inscripciones nuevas hoy. Ya hay {{3}} personas inscritas. Puedes ver la lista completa en el panel.
+
+Ejemplos: `Retiro de matrimonios` · `3` · `12 de 40`
 
 Cada mensaje de plantilla tiene un costo por mensaje que cobra Meta, según el país. Con el número de prueba de Meta solo llegan a los números cargados en su lista de destinatarios.
