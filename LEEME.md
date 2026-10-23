@@ -151,8 +151,21 @@ base-de-datos/9-pagos.sql   Cuentas de Mercado Pago de las iglesias y estado de 
 1. En Mercado Pago Developers, con la cuenta de Mercado Pago de Eklesic, **crear una aplicación** para pagos online con Checkout Pro.
 2. En la aplicación, cargar como **URL de redireccionamiento**: `https://lzoidiktxmbswfgjoacf.supabase.co/functions/v1/whatsapp/mp/oauth`. Si la aplicación pide permisos, incluir `offline_access` (para que el acceso a la cuenta de cada iglesia se renueve solo).
 3. Copiar el **Client ID** y el **Client Secret** de la aplicación y guardarlos en Supabase → Edge Functions → Secrets como `MP_CLIENT_ID` y `MP_CLIENT_SECRET`.
-4. Para probar con cuentas de prueba de Mercado Pago, agregar también `MP_PRUEBA` = `si`. Quitarlo para cobrar de verdad.
-5. Opcional: `MP_COMISION` con un porcentaje (por ejemplo `3`) para que Eklesic cobre una comisión por inscripción. Consultar con un contador antes.
+4. Opcional: `MP_COMISION` con un porcentaje (por ejemplo `3`) para que Eklesic cobre una comisión por inscripción. Consultar con un contador antes.
+5. **No usar** `MP_PRUEBA` (pide credenciales del modo de prueba viejo de Mercado Pago y el pago falla con "Oh, no, algo anduvo mal"). `MP_SIN_VENCIMIENTO` = `si` existe solo para diagnosticar: quita el vencimiento de 30 minutos del cobro.
+
+### Cómo probar sin dinero real (probado el 23/10/2026)
+
+Una aplicación real no puede mover pagos entre cuentas de prueba cuando cobra a nombre de otro vendedor. Para probar:
+
+1. En Mercado Pago Developers (cuenta real) → Cuentas de prueba, crear tres cuentas del mismo país: **Marketplace** (hace de Eklesic), **Vendedor** (hace de iglesia) y **Comprador**.
+2. Iniciar sesión en Developers con la cuenta **Marketplace de prueba** y crear ahí una aplicación de prueba, con la misma URL de redireccionamiento.
+3. Poner temporalmente en Supabase el `MP_CLIENT_ID` y el `MP_CLIENT_SECRET` de esa aplicación de prueba (guardar los reales aparte).
+4. Conectar la iglesia desde el panel en una ventana de incógnito, iniciando sesión con la cuenta **Vendedor** de prueba.
+5. Inscribirse en otra ventana de incógnito y pagar con la cuenta **Comprador** de prueba: tarjeta de prueba Mastercard terminada en 0604, código 123. Si Chrome bloquea las cookies de terceros (ojo tachado en la barra), permitirlas.
+6. Al terminar, volver a poner las credenciales de la aplicación real.
+
+Para iniciar sesión con una cuenta de prueba, el código de verificación es el de 6 dígitos que aparece en los datos de esa cuenta.
 
 ### Conectar una iglesia
 
