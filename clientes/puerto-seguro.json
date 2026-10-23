@@ -121,17 +121,6 @@
       "lugar": "Sede central"
     },
     {
-      "titulo": "Encuentro de personas",
-      "fecha": "2026-11-28",
-      "hora": "10:00",
-      "lugar": "Sede central",
-      "inscripcion": true,
-      "cupo": 10,
-      "avisos": "cada_inscripcion",
-      "precio": 1000,
-      "id": "9jrfv4vt"
-    },
-    {
       "titulo": "Bautismos",
       "fecha": "2026-12-12",
       "hora": "21:00",
