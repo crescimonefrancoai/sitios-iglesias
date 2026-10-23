@@ -1,5 +1,7 @@
 -- Eventos con inscripción. Los eventos están en el archivo del cliente (GitHub); acá se guardan las inscripciones.
 -- Se puede correr más de una vez sin problemas. Necesita 2-seguridad.sql y 7-asistente.sql.
+-- ATENCIÓN: si ya corriste 9-pagos.sql, no vuelvas a correr este archivo (dejaría dos versiones de la función
+-- "inscribir"). Si hace falta, corré después 9-pagos.sql de nuevo y queda bien.
 
 create table if not exists inscripciones (
   id            uuid primary key default gen_random_uuid(),
