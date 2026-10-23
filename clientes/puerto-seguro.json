@@ -105,16 +105,6 @@
       "lugar": "Quinta Los Sauces"
     },
     {
-      "titulo": "Retiro de mujeres",
-      "fecha": "2026-11-20",
-      "hora": "18:00",
-      "lugar": "Longchamps",
-      "id": "tp4j812e",
-      "inscripcion": true,
-      "cupo": 30,
-      "avisos": "cada_inscripcion"
-    },
-    {
       "titulo": "Bautismos",
       "fecha": "2026-11-21",
       "hora": "11:00",
