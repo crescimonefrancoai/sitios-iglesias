@@ -109,16 +109,27 @@
       "fecha": "2026-11-20",
       "hora": "18:00",
       "lugar": "Longchamps",
+      "id": "tp4j812e",
       "inscripcion": true,
       "cupo": 30,
-      "avisos": "cada_inscripcion",
-      "id": "tp4j812e"
+      "avisos": "cada_inscripcion"
     },
     {
       "titulo": "Bautismos",
       "fecha": "2026-11-21",
       "hora": "11:00",
       "lugar": "Sede central"
+    },
+    {
+      "titulo": "Encuentro de personas",
+      "fecha": "2026-11-28",
+      "hora": "10:00",
+      "lugar": "Sede central",
+      "inscripcion": true,
+      "cupo": 10,
+      "avisos": "cada_inscripcion",
+      "precio": 1000,
+      "id": "9jrfv4vt"
     },
     {
       "titulo": "Bautismos",
