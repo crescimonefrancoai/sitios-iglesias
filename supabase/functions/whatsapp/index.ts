@@ -13,6 +13,11 @@
                           resumen diario al equipo y recordatorio el día anterior.
    POST /whatsapp/inscribir   La página inscribe a alguien en un evento (revisa el evento y el cupo).
    POST /whatsapp/cupos       La página consulta cuántos lugares están ocupados en cada evento.
+   Eventos pagos (Mercado Pago, ver la sección más abajo):
+   POST /whatsapp/mp/notificacion   Mercado Pago avisa de un pago (se consulta a Mercado Pago antes de confirmar).
+   POST /whatsapp/mp/estado         El panel pregunta si la iglesia tiene Mercado Pago conectado.
+   POST /whatsapp/mp/enlace         El panel pide la dirección para conectar la cuenta de la iglesia.
+   GET  /whatsapp/mp/oauth          Mercado Pago vuelve acá después de que la iglesia autoriza.
                           Usa plantillas de WhatsApp aprobadas en Meta (ver LEEME.md).
 
    Secretos (Supabase -> Edge Functions -> Secrets):
@@ -383,9 +388,10 @@ async function enviarReportesMensuales() {
 
 /* ---------- Eventos con inscripción ---------- */
 
-type Evento = { id: string; titulo: string; fecha: string; hora: string; lugar: string; inscripcion?: boolean; cupo?: number; avisos?: string };
+type Evento = { id: string; titulo: string; fecha: string; hora: string; lugar: string; inscripcion?: boolean; cupo?: number; avisos?: string; precio?: number };
 
-const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "content-type" };
+// "authorization": el panel manda la sesión del usuario para conectar Mercado Pago
+const CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "content-type, authorization" };
 const responderJson = (estado: number, cuerpo: unknown) =>
   new Response(JSON.stringify(cuerpo), { status: estado, headers: { ...CORS, "Content-Type": "application/json; charset=utf-8" } });
 
@@ -458,13 +464,37 @@ async function inscribir(req: Request) {
   const { data: permitido } = await db.rpc("asistente_permitido", { p_clave: `insc:${await cifrar(ip)}`, p_maximo: 200, p_ventana: "1 hour" });
   if (permitido !== true) return responderJson(429, { error: "Recibimos muchas inscripciones seguidas desde tu conexión. Intenta en un rato." });
 
+  // Evento pago: hace falta la moneda de la iglesia y su cuenta de Mercado Pago conectada
+  const conPago = typeof evento.precio === "number" && evento.precio > 0;
+  let tokenCobro: string | null = null, moneda: string | null = null;
+  if (conPago) {
+    moneda = (await archivoCliente(ig.slug))?.moneda ?? null;
+    tokenCobro = await tokenMP(c.churchId);
+    if (!moneda || !tokenCobro) return responderJson(409, { error: "La inscripción con pago todavía no está habilitada. Escríbenos por WhatsApp y te anotamos." });
+  }
+
   const { data: resultado, error } = await db.rpc("inscribir", {
     p_church: c.churchId, p_evento: evento.id, p_titulo: evento.titulo, p_fecha: evento.fecha, p_cupo: evento.cupo ?? null,
     p_nombre: nombre, p_telefono: telefono, p_email: email, p_acompanantes: acompanantes,
+    p_monto: conPago ? evento.precio : null, p_moneda: moneda, p_minutos: MINUTOS_RESERVA,
   });
   if (error) { console.error("No se pudo inscribir:", error.message); return responderJson(500, { error: "No pudimos guardar tu inscripción. Intenta de nuevo en unos minutos." }); }
   if (resultado === "sin_cupo") return responderJson(409, { error: "No quedan lugares suficientes para este evento." });
   if (resultado === "repetido") return responderJson(200, { ok: true, mensaje: "Ya estabas inscrito en este evento. ¡Te esperamos!" });
+
+  if (conPago) {
+    // 'ok:<id>' (inscripción nueva) o 'pendiente:<id>' (ya tenía un lugar reservado sin pagar): en los dos casos, a pagar
+    const insId = String(resultado).split(":")[1];
+    const volver = typeof c.volver === "string" && /^https:\/\/\S{1,300}$/.test(c.volver) ? c.volver : urlSitio(ig.slug);
+    try {
+      const pagar = await crearCobroMP(tokenCobro!, { id: insId, acompanantes }, evento, moneda!, c.churchId, volver);
+      return responderJson(200, { ok: true, pagar, mensaje: "Te llevamos a Mercado Pago para completar el pago…" });
+    } catch (e) {
+      console.error("No se pudo crear el cobro:", e);
+      await db.from("inscripciones").update({ pago_estado: "vencido" }).eq("id", insId).eq("pago_estado", "pendiente"); // libera el lugar
+      return responderJson(502, { error: "No pudimos iniciar el pago. Intenta de nuevo en unos minutos." });
+    }
+  }
 
   EdgeRuntime.waitUntil(procesarPendientes()); // confirmación y aviso al equipo, ya mismo
   return responderJson(200, { ok: true, mensaje: `¡Listo, ${primerNombre(nombre)}! Ya estás inscrito. Te esperamos el ${cuandoTexto(evento.fecha, evento.hora)}.` });
@@ -474,7 +504,7 @@ async function inscribir(req: Request) {
    no entra cuando son cientos). Devuelve las que marcó esta llamada. */
 const marcarDelEvento = (churchId: string, eventoId: string, columna: string) =>
   db.from("inscripciones").update({ [columna]: new Date().toISOString() })
-    .eq("church_id", churchId).eq("evento_id", eventoId).is(columna, null).select("id");
+    .eq("church_id", churchId).eq("evento_id", eventoId).is(columna, null).in("pago_estado", ["no_requiere", "pagado"]).select("id");
 
 async function eventoDe(ig: Iglesia, eventoId: string) {
   return (await eventosConInscripcion(ig.slug)).find((e) => e.id === eventoId);
@@ -490,7 +520,7 @@ async function enLotes<T>(items: T[], tamano: number, tarea: (item: T) => Promis
 
 /* Confirmación a quien se inscribió y, en los eventos "cada_inscripcion", aviso al equipo */
 async function avisarInscripciones() {
-  const { data: confirmar } = await db.from("inscripciones").select("*").is("confirmacion_enviada_at", null).order("created_at").limit(200);
+  const { data: confirmar } = await db.from("inscripciones").select("*").is("confirmacion_enviada_at", null).in("pago_estado", ["no_requiere", "pagado"]).order("created_at").limit(200);
   await enLotes(confirmar ?? [], 10, async (r) => {
     if (!(await tomar("inscripciones", "confirmacion_enviada_at", r.id))) return;
     const ig = await datosIglesia(r.church_id);
@@ -502,7 +532,7 @@ async function avisarInscripciones() {
     ]);
   });
 
-  const { data: avisar } = await db.from("inscripciones").select("*").is("aviso_enviado_at", null).order("created_at").limit(50);
+  const { data: avisar } = await db.from("inscripciones").select("*").is("aviso_enviado_at", null).in("pago_estado", ["no_requiere", "pagado"]).order("created_at").limit(50);
   for (const r of avisar ?? []) {
     if (!(await tomar("inscripciones", "aviso_enviado_at", r.id))) continue;
     const ig = await datosIglesia(r.church_id);
@@ -517,7 +547,7 @@ async function avisarInscripciones() {
 /* Resumen del día al equipo (eventos con avisos "resumen_diario"), entre las 19 y las 20 de la iglesia */
 async function resumirInscripciones() {
   // Solo hace falta saber qué eventos tienen inscripciones sin resumir; el conteo sale al marcarlas
-  const { data } = await db.from("inscripciones").select("church_id, evento_id, evento_titulo").is("resumen_enviado_at", null).limit(1000);
+  const { data } = await db.from("inscripciones").select("church_id, evento_id, evento_titulo").is("resumen_enviado_at", null).in("pago_estado", ["no_requiere", "pagado"]).limit(1000);
   const eventos = new Map<string, { church_id: string; evento_id: string; evento_titulo: string }>();
   for (const r of data ?? []) eventos.set(`${r.church_id}|${r.evento_id}`, r);
   for (const { church_id, evento_id, evento_titulo } of eventos.values()) {
@@ -534,7 +564,7 @@ async function resumirInscripciones() {
 
 /* Recordatorio a cada inscrito el día anterior al evento, entre las 9 y las 20 de la iglesia */
 async function recordarEventos() {
-  const { data } = await db.from("inscripciones").select("*").is("recordatorio_enviado_at", null)
+  const { data } = await db.from("inscripciones").select("*").is("recordatorio_enviado_at", null).in("pago_estado", ["no_requiere", "pagado"])
     .lte("evento_fecha", hoyEn("UTC", 2)).order("evento_fecha").limit(500);
   await enLotes(data ?? [], 10, async (r) => {
     const ig = await datosIglesia(r.church_id);
@@ -551,10 +581,210 @@ async function recordarEventos() {
   });
 }
 
+/* ---------- Mercado Pago (eventos pagos) ----------
+   Secretos: MP_CLIENT_ID y MP_CLIENT_SECRET (la aplicación de Eklesic en Mercado Pago Developers).
+   Opcionales: MP_PRUEBA = si (usar cuentas de prueba) y MP_COMISION (porcentaje para Eklesic; por defecto, nada).
+   En la aplicación de Mercado Pago, la URL de redireccionamiento es <SUPABASE_URL>/functions/v1/whatsapp/mp/oauth
+   El dinero va directo a la cuenta de cada iglesia, que se conecta desde el panel (Inscripciones → Conectar Mercado Pago). */
+const MP_API = "https://api.mercadopago.com";
+const MINUTOS_RESERVA = 30; // lugar guardado mientras la persona paga
+const mpPrueba = () => env("MP_PRUEBA") === "si";
+const urlRetornoOAuth = () => `${env("SUPABASE_URL")}/functions/v1/whatsapp/mp/oauth`;
+const urlSitio = (slug: string) => {
+  const [dueno, repo] = env("GITHUB_REPO").split("/");
+  return `https://${dueno.toLowerCase()}.github.io/${repo}/${slug}/`;
+};
+
+async function firmar(texto: string) {
+  const clave = await crypto.subtle.importKey("raw", new TextEncoder().encode(env("AVISO_SECRET")), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const bytes = new Uint8Array(await crypto.subtle.sign("HMAC", clave, new TextEncoder().encode(texto)));
+  return Array.from(bytes.slice(0, 16), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+// deno-lint-ignore no-explicit-any
+async function pedirTokenMP(cuerpo: Record<string, unknown>): Promise<any> {
+  const r = await fetch(`${MP_API}/oauth/token`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ client_id: env("MP_CLIENT_ID"), client_secret: env("MP_CLIENT_SECRET"), ...cuerpo }),
+  });
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok || !datos.access_token) throw new Error(`Mercado Pago no entregó el acceso (${r.status}): ${JSON.stringify(datos).slice(0, 300)}`);
+  return datos;
+}
+// El acceso dura 180 días según Mercado Pago
+const venceDe = (t: { expires_in?: number }) => new Date(Date.now() + (Number(t.expires_in) > 0 ? Number(t.expires_in) * 1000 : 180 * 86400000)).toISOString();
+
+/* Acceso a la cuenta de Mercado Pago de una iglesia; se renueva solo cuando faltan menos de 7 días */
+async function tokenMP(churchId: string): Promise<string | null> {
+  const { data: c } = await db.from("mp_cuentas").select("access_token, refresh_token, vence_at").eq("church_id", churchId).maybeSingle();
+  if (!c) return null;
+  if (!c.refresh_token || Date.parse(c.vence_at) - Date.now() > 7 * 86400000) return c.access_token;
+  try {
+    const t = await pedirTokenMP({ grant_type: "refresh_token", refresh_token: c.refresh_token });
+    await db.from("mp_cuentas").update({ access_token: t.access_token, refresh_token: t.refresh_token ?? c.refresh_token, vence_at: venceDe(t), actualizada_at: new Date().toISOString() }).eq("church_id", churchId);
+    return t.access_token;
+  } catch (e) {
+    console.error("No se pudo renovar el acceso a Mercado Pago:", e);
+    return c.access_token;
+  }
+}
+
+const conEstadoDePago = (volver: string, estado: string) => {
+  const u = new URL(volver);
+  u.searchParams.set("pago", estado);
+  u.hash = "eventos";
+  return u.toString();
+};
+
+/* Crea el cobro en la cuenta de la iglesia y devuelve la dirección de la pantalla de pago */
+async function crearCobroMP(token: string, ins: { id: string; acompanantes: number }, evento: Evento, moneda: string, churchId: string, volver: string) {
+  const personas = 1 + ins.acompanantes;
+  const ahora = Date.now();
+  const iso = (t: number) => new Date(t).toISOString().replace("Z", "+00:00");
+  const comision = Number(env("MP_COMISION")) > 0 ? Math.round(evento.precio! * personas * Number(env("MP_COMISION"))) / 100 : 0;
+  const preferencia: Record<string, unknown> = {
+    items: [{ id: evento.id, title: `Inscripción: ${evento.titulo}`.slice(0, 250), quantity: personas, unit_price: evento.precio, currency_id: moneda }],
+    external_reference: ins.id,
+    notification_url: `${env("SUPABASE_URL")}/functions/v1/whatsapp/mp/notificacion?iglesia=${churchId}`,
+    back_urls: { success: conEstadoDePago(volver, "listo"), pending: conEstadoDePago(volver, "pendiente"), failure: conEstadoDePago(volver, "error") },
+    auto_return: "approved",
+    // El lugar se guarda MINUTOS_RESERVA: después, el cobro vence y no se puede pagar
+    expires: true,
+    expiration_date_from: iso(ahora - 60000),
+    expiration_date_to: iso(ahora + MINUTOS_RESERVA * 60000),
+    // Solo medios inmediatos: los pagos en efectivo (OXXO, boleto, Rapipago) se acreditan días después de vencida la reserva
+    payment_methods: { excluded_payment_types: [{ id: "ticket" }, { id: "atm" }] },
+  };
+  if (comision > 0) preferencia.marketplace_fee = comision;
+  const r = await fetch(`${MP_API}/checkout/preferences`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(preferencia),
+  });
+  const datos = await r.json().catch(() => ({}));
+  if (!r.ok || !datos.init_point) throw new Error(`Mercado Pago no creó el cobro (${r.status}): ${JSON.stringify(datos).slice(0, 300)}`);
+  return (mpPrueba() && datos.sandbox_init_point) || datos.init_point;
+}
+
+/* Aplica a la inscripción lo que dice Mercado Pago de un pago (siempre consultado a Mercado Pago, nunca creído de un aviso) */
+// deno-lint-ignore no-explicit-any
+async function aplicarPagoMP(churchId: string, pago: any) {
+  const insId = String(pago?.external_reference ?? "");
+  if (!esUuid(insId)) return;
+  const { data: ins } = await db.from("inscripciones").select("id, monto, moneda, pago_estado").eq("id", insId).eq("church_id", churchId).maybeSingle();
+  if (!ins) return;
+  if (pago.status === "approved") {
+    if (ins.pago_estado === "pagado") return;
+    const alcanza = Number(pago.transaction_amount) + 0.01 >= Number(ins.monto ?? 0) && (!ins.moneda || pago.currency_id === ins.moneda);
+    if (!alcanza) return console.error(`El pago ${pago.id} (${pago.transaction_amount} ${pago.currency_id}) no coincide con la inscripción ${insId}`);
+    // Si la reserva ya había vencido igual se confirma: la persona pagó
+    await db.from("inscripciones").update({ pago_estado: "pagado", mp_pago_id: String(pago.id), pagado_at: pago.date_approved ?? new Date().toISOString() })
+      .eq("id", insId).neq("pago_estado", "pagado");
+  } else if (["refunded", "charged_back"].includes(pago.status) && ins.pago_estado === "pagado") {
+    await db.from("inscripciones").update({ pago_estado: "reembolsado" }).eq("id", insId);
+  }
+}
+
+/* POST /whatsapp/mp/notificacion?iglesia=<id>: Mercado Pago avisa que cambió un pago */
+async function notificacionMP(req: Request, url: URL) {
+  const churchId = url.searchParams.get("iglesia");
+  const cuerpo = (await leerJson(req)) ?? {};
+  const tipo = cuerpo.type ?? url.searchParams.get("type") ?? url.searchParams.get("topic");
+  const pagoId = String(cuerpo.data?.id ?? url.searchParams.get("data.id") ?? url.searchParams.get("id") ?? "");
+  if (tipo === "payment" && /^\d+$/.test(pagoId) && esUuid(churchId)) {
+    try {
+      const token = await tokenMP(churchId);
+      const r = token ? await fetch(`${MP_API}/v1/payments/${pagoId}`, { headers: { Authorization: `Bearer ${token}` } }) : null;
+      if (r?.ok) await aplicarPagoMP(churchId, await r.json());
+      else if (r) console.error(`Mercado Pago no devolvió el pago ${pagoId}:`, r.status);
+    } catch (e) {
+      console.error("Falló la revisión de un pago:", e);
+    }
+    EdgeRuntime.waitUntil(procesarPendientes()); // confirmación al inscrito y aviso al equipo
+  }
+  return responder(200); // Mercado Pago reintenta si no recibe 200
+}
+
+/* Respaldo de los avisos: busca en Mercado Pago los pagos de las reservas de las últimas 48 h, y marca como
+   vencidas las reservas sin pagar (así dejan de ocupar lugar y se ven así en el panel) */
+async function conciliarPagosMP() {
+  const desde = new Date(Date.now() - 48 * 3600000).toISOString();
+  const { data } = await db.from("inscripciones").select("id, church_id").in("pago_estado", ["pendiente", "vencido"])
+    .gte("created_at", desde).order("created_at").limit(50);
+  await enLotes(data ?? [], 5, async (i) => {
+    const token = await tokenMP(i.church_id);
+    if (!token) return;
+    const r = await fetch(`${MP_API}/v1/payments/search?external_reference=${i.id}`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) return;
+    // deno-lint-ignore no-explicit-any
+    const aprobado = ((await r.json()).results ?? []).find((p: any) => p.status === "approved");
+    if (aprobado) await aplicarPagoMP(i.church_id, aprobado);
+  });
+  await db.from("inscripciones").update({ pago_estado: "vencido" })
+    .eq("pago_estado", "pendiente").lt("pago_vence_at", new Date(Date.now() - 10 * 60000).toISOString());
+}
+
+/* El panel manda la sesión del usuario: solo quien administra la iglesia puede conectar su cuenta */
+async function usuarioDelPanel(req: Request) {
+  const jwt = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "");
+  if (!jwt) return null;
+  const { data } = await db.auth.getUser(jwt);
+  if (!data?.user) return null;
+  const { data: staff } = await db.from("staff_users").select("church_id, role").eq("auth_id", data.user.id).maybeSingle();
+  return staff as { church_id: string; role: string } | null;
+}
+
+/* POST /whatsapp/mp/estado (desde el panel): si la iglesia tiene Mercado Pago conectado */
+async function estadoMP(req: Request) {
+  const staff = await usuarioDelPanel(req);
+  if (!staff) return responderJson(401, { error: "Vuelve a ingresar al panel." });
+  const { data } = await db.from("mp_cuentas").select("live_mode, conectada_at").eq("church_id", staff.church_id).maybeSingle();
+  return responderJson(200, {
+    configurado: Boolean(env("MP_CLIENT_ID") && env("MP_CLIENT_SECRET")),
+    conectada: Boolean(data), prueba: data ? data.live_mode === false : null, desde: data?.conectada_at ?? null,
+    puedeConectar: ["owner", "admin"].includes(staff.role),
+  });
+}
+
+/* POST /whatsapp/mp/enlace (desde el panel): dirección para que la iglesia autorice a Eklesic en Mercado Pago */
+async function enlaceMP(req: Request) {
+  const staff = await usuarioDelPanel(req);
+  if (!staff) return responderJson(401, { error: "Vuelve a ingresar al panel." });
+  if (!["owner", "admin"].includes(staff.role)) return responderJson(403, { error: "Solo quien administra la iglesia puede conectar Mercado Pago." });
+  if (!env("MP_CLIENT_ID") || !env("MP_CLIENT_SECRET")) return responderJson(503, { error: "Los pagos todavía no están habilitados en Eklesic." });
+  const vence = Date.now() + 30 * 60000;
+  const estado = `${staff.church_id}.${vence}.${await firmar(`${staff.church_id}.${vence}`)}`;
+  const u = new URL("https://auth.mercadopago.com/authorization");
+  u.search = new URLSearchParams({ client_id: env("MP_CLIENT_ID"), response_type: "code", platform_id: "mp", state: estado, redirect_uri: urlRetornoOAuth() }).toString();
+  return responderJson(200, { url: u.toString() });
+}
+
+/* GET /whatsapp/mp/oauth: Mercado Pago vuelve acá después de que la iglesia autoriza. Se guarda el acceso y
+   se vuelve al panel (Supabase no deja mostrar páginas HTML desde sus funciones). */
+async function volverDeMP(url: URL) {
+  const alPanel = (resultado: string) => Response.redirect(`${urlPanel()}?mp=${resultado}`, 302);
+  const [churchId, venceTxt, firma] = (url.searchParams.get("state") ?? "").split(".");
+  const code = url.searchParams.get("code");
+  if (!code) return alPanel("cancelado");
+  if (!esUuid(churchId) || !firma || Number(venceTxt) < Date.now() || !iguales(firma, await firmar(`${churchId}.${venceTxt}`))) return alPanel("vencido");
+  try {
+    const t = await pedirTokenMP({ grant_type: "authorization_code", code, redirect_uri: urlRetornoOAuth(), test_token: mpPrueba() ? "true" : "false" });
+    const { error } = await db.from("mp_cuentas").upsert({
+      church_id: churchId, mp_user_id: String(t.user_id ?? ""), access_token: t.access_token, refresh_token: t.refresh_token ?? null,
+      live_mode: t.live_mode ?? null, vence_at: venceDe(t), conectada_at: new Date().toISOString(), actualizada_at: new Date().toISOString(),
+    }, { onConflict: "church_id" });
+    if (error) throw new Error(error.message);
+    return alPanel("conectado");
+  } catch (e) {
+    console.error("No se pudo conectar Mercado Pago:", e);
+    return alPanel("error");
+  }
+}
+
 async function procesarPendientes() {
   iglesias.clear();
   for (const tarea of [avisarVisitasNuevas, avisarPedidosDeOracion, recordarSeguimientos, enviarReportesMensuales,
-    avisarInscripciones, resumirInscripciones, recordarEventos]) {
+    conciliarPagosMP, avisarInscripciones, resumirInscripciones, recordarEventos]) {
     try { await tarea(); } catch (e) { console.error(`Falló ${tarea.name}:`, e); }
   }
 }
@@ -562,6 +792,7 @@ async function procesarPendientes() {
 Deno.serve(async (req) => {
   const url = new URL(req.url);
 
+  if (req.method === "GET" && url.pathname.endsWith("/mp/oauth")) return volverDeMP(url);
   if (req.method === "GET") {
     const p = url.searchParams;
     const ok = p.get("hub.mode") === "subscribe" && iguales(p.get("hub.verify_token") ?? "", env("WHATSAPP_VERIFY_TOKEN"));
@@ -570,6 +801,10 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: CORS });
   if (req.method !== "POST") return responder(405, "método no permitido");
 
+  // Las rutas de Mercado Pago van antes que "/aviso" (la del agente de GitHub)
+  if (url.pathname.endsWith("/mp/notificacion")) return notificacionMP(req, url);
+  if (url.pathname.endsWith("/mp/estado")) return estadoMP(req);
+  if (url.pathname.endsWith("/mp/enlace")) return enlaceMP(req);
   if (url.pathname.endsWith("/inscribir")) return inscribir(req);
   if (url.pathname.endsWith("/cupos")) return cupos(req);
   if (url.pathname.endsWith("/aviso")) return devolverResultado(req);
