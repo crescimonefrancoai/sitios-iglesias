@@ -123,6 +123,42 @@ base-de-datos/8-inscripciones.sql   Tabla de inscripciones y control del cupo
 
 **Memoria corta del agente de WhatsApp**: el agente ve los mensajes de los últimos 30 minutos con la misma persona, así entiende respuestas a sus preguntas ("resumen por día").
 
+## Eventos pagos (Mercado Pago)
+
+Un evento con inscripción puede tener `precio` (por persona). Al inscribirse, la persona paga con Mercado Pago y la inscripción se confirma sola cuando el pago se acredita. **El dinero va directo a la cuenta de Mercado Pago de la iglesia**, nunca pasa por Eklesic.
+
+```json
+{ "titulo": "Retiro de mujeres", "fecha": "2026-11-20", "hora": "18:00", "lugar": "Longchamps",
+  "inscripcion": true, "cupo": 30, "avisos": "cada_inscripcion", "precio": 25000, "id": "tp4j812e" }
+```
+
+El archivo de la iglesia necesita además `"moneda": "ARS"` (o `MXN`, `BRL`…), que se carga a mano: el agente no puede cambiarla. El pastor crea el evento pago por WhatsApp igual que los demás ("…con inscripción, cupo 30 y un costo de 25000").
+
+Cómo funciona:
+
+1. La persona completa el formulario y toca **Continuar al pago**. Se cobra por persona (ella más sus acompañantes).
+2. Su lugar queda reservado **30 minutos** y la página la lleva a Mercado Pago. Solo se aceptan medios inmediatos (tarjeta, dinero en cuenta, PIX): los pagos en efectivo (OXXO, boleto, Rapipago) se excluyen porque se acreditan días después.
+3. Mercado Pago avisa del pago a `/whatsapp/mp/notificacion`. El bot **no confía en el aviso**: consulta el pago a Mercado Pago, revisa que el monto y la moneda coincidan, y recién ahí marca la inscripción como pagada y manda la confirmación por WhatsApp y el aviso al equipo.
+4. **Respaldo**: si un aviso se pierde, la tarea de cada hora busca en Mercado Pago los pagos de las reservas de las últimas 48 h. Las reservas sin pagar vencen solas y liberan el lugar.
+5. En el panel, la pestaña Inscripciones muestra el estado de cada pago (pagado, pendiente, reserva vencida, reembolsado) y el total cobrado por evento. Las devoluciones las hace la iglesia desde su cuenta de Mercado Pago; al reembolsar, la inscripción pasa a "reembolsado".
+
+```
+base-de-datos/9-pagos.sql   Cuentas de Mercado Pago de las iglesias y estado de pago de las inscripciones
+```
+
+### Configuración (una sola vez, en Eklesic)
+
+1. En Mercado Pago Developers, con la cuenta de Mercado Pago de Eklesic, **crear una aplicación** para pagos online con Checkout Pro.
+2. En la aplicación, cargar como **URL de redireccionamiento**: `https://lzoidiktxmbswfgjoacf.supabase.co/functions/v1/whatsapp/mp/oauth`. Si la aplicación pide permisos, incluir `offline_access` (para que el acceso a la cuenta de cada iglesia se renueve solo).
+3. Copiar el **Client ID** y el **Client Secret** de la aplicación y guardarlos en Supabase → Edge Functions → Secrets como `MP_CLIENT_ID` y `MP_CLIENT_SECRET`.
+4. Para probar con cuentas de prueba de Mercado Pago, agregar también `MP_PRUEBA` = `si`. Quitarlo para cobrar de verdad.
+5. Opcional: `MP_COMISION` con un porcentaje (por ejemplo `3`) para que Eklesic cobre una comisión por inscripción. Consultar con un contador antes.
+
+### Conectar una iglesia
+
+1. Agregar `"moneda": "ARS"` (o la de su país) en `clientes/<cliente>.json`.
+2. Quien administra la iglesia entra al panel → **Inscripciones** → **Conectar Mercado Pago**, ingresa con la cuenta de Mercado Pago de la iglesia y autoriza. El acceso dura 180 días y se renueva solo.
+
 ## Asistente de la página
 
 Una burbuja "¿Tienes una pregunta?" abre un chat que responde a los visitantes con la información de su iglesia: horarios, sedes, ministerios, próximos eventos, enseñanzas y contacto. Aparece solo en los sitios conectados a la base de datos.
