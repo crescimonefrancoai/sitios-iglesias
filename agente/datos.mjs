@@ -27,6 +27,8 @@ export const OPCIONALES = {
     inscripcion: (v) => typeof v === "boolean",
     cupo: (v) => Number.isInteger(v) && v >= 1 && v <= 10000,
     avisos: (v) => AVISOS_INSCRIPCION.includes(v),
+    /* precio por persona, en la moneda de la iglesia ("moneda" del archivo); se cobra con Mercado Pago */
+    precio: (v) => typeof v === "number" && v > 0 && v <= 10000000 && Math.round(v * 100) === v * 100,
   },
 };
 const nuevoId = () => Array.from({ length: 8 }, () => "abcdefghijklmnopqrstuvwxyz0123456789"[Math.floor(Math.random() * 36)]).join("");
@@ -98,8 +100,13 @@ export function erroresDeDatos(datos) {
   for (const c of ["texto", "alias", "titular", "banco"]) if (!esTexto(leer(datos, `ofrendas.${c}`))) errores.push(`ofrendas.${c}: falta.`);
   if (!esUrl(leer(datos, "ofrendas.mercadopago"))) errores.push("ofrendas.mercadopago: tiene que empezar con https://");
   for (const lista of Object.keys(LISTAS)) errores.push(...erroresDeLista(lista, datos[lista]));
+  /* moneda es opcional (código de 3 letras: ARS, MXN, BRL…), pero obligatoria si algún evento tiene precio.
+     Se carga a mano: el agente no la puede cambiar. */
+  if (datos.moneda !== undefined && !/^[A-Z]{3}$/.test(datos.moneda)) errores.push("moneda: tiene que ser un código de 3 letras, como ARS, MXN o BRL.");
   (Array.isArray(datos.eventos) ? datos.eventos : []).forEach((e, i) => {
     if (e?.inscripcion && !e.id) errores.push(`eventos[${i}]: tiene inscripción pero le falta el id.`);
+    if (e?.precio !== undefined && !e.inscripcion) errores.push(`eventos[${i}]: tiene precio pero no tiene inscripción.`);
+    if (e?.precio !== undefined && !datos.moneda) errores.push(`eventos[${i}]: tiene precio, pero falta "moneda" en el archivo de la iglesia.`);
   });
   return errores;
 }
