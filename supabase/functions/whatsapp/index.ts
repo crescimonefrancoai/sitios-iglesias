@@ -648,13 +648,16 @@ async function crearCobroMP(token: string, ins: { id: string; acompanantes: numb
     notification_url: `${env("SUPABASE_URL")}/functions/v1/whatsapp/mp/notificacion?iglesia=${churchId}`,
     back_urls: { success: conEstadoDePago(volver, "listo"), pending: conEstadoDePago(volver, "pendiente"), failure: conEstadoDePago(volver, "error") },
     auto_return: "approved",
-    // El lugar se guarda MINUTOS_RESERVA: después, el cobro vence y no se puede pagar
-    expires: true,
-    expiration_date_from: iso(ahora - 60000),
-    expiration_date_to: iso(ahora + MINUTOS_RESERVA * 60000),
     // Solo medios inmediatos: los pagos en efectivo (OXXO, boleto, Rapipago) se acreditan días después de vencida la reserva
     payment_methods: { excluded_payment_types: [{ id: "ticket" }, { id: "atm" }] },
   };
+  // El lugar se guarda MINUTOS_RESERVA: después, el cobro vence y no se puede pagar. Sin fecha de inicio
+  // (con zona horaria mal interpretada puede quedar "todavía no vigente"). MP_SIN_VENCIMIENTO = si lo apaga:
+  // si alguien paga tarde, el pago igual se acredita y la inscripción se confirma.
+  if (env("MP_SIN_VENCIMIENTO") !== "si") {
+    preferencia.expires = true;
+    preferencia.expiration_date_to = iso(ahora + MINUTOS_RESERVA * 60000);
+  }
   if (comision > 0) preferencia.marketplace_fee = comision;
   const r = await fetch(`${MP_API}/checkout/preferences`, {
     method: "POST",
