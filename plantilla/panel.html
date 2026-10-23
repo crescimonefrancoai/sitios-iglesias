@@ -92,6 +92,12 @@ label.campo > span { display: block; font-weight: 700; font-size: .9rem; margin-
 .evento-insc__cabecera { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .5rem 1rem; margin-bottom: .5rem; }
 .evento-insc h3 { font-size: 1.25rem; }
 .evento-insc .total { font-weight: 700; color: var(--marea); }
+.mp { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .75rem 1.25rem; border: 1.5px solid var(--linea); border-radius: 1rem; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+.etiqueta { display: inline-block; padding: .05rem .55rem; border-radius: 999px; font-size: .78rem; font-weight: 700; white-space: nowrap; }
+.etiqueta--pagado { background: var(--ok); color: #fff; }
+.etiqueta--pendiente { background: var(--lampara); color: var(--lampara-texto); }
+.etiqueta--vencido, .etiqueta--reembolsado { background: var(--linea); color: var(--tinta); }
+.fila-inactiva td { opacity: .6; }
 
 .oracion { border: 1.5px solid var(--linea); border-radius: 1rem; padding: 1rem 1.25rem; margin-bottom: .85rem; }
 .oracion p.texto { margin-top: .5rem; white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -152,6 +158,11 @@ dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
     </section>
 
     <section id="sec-inscripciones" hidden>
+      <div class="mp" id="mp-caja" hidden>
+        <div><b>Cobros con Mercado Pago</b><p class="chico" id="mp-texto"></p></div>
+        <button class="boton boton--lampara" id="btn-mp" type="button" hidden>Conectar Mercado Pago</button>
+      </div>
+      <p class="aviso" id="mp-aviso" role="status"></p>
       <div class="herramientas"><button class="boton boton--linea" id="btn-actualizar-insc" type="button">Actualizar</button></div>
       <div id="lista-inscripciones"></div>
     </section>
@@ -251,7 +262,8 @@ async function iniciar() {
   const { data: iglesia } = await db.from("churches").select("name").eq("id", iglesiaId).maybeSingle();
   $("p-iglesia").innerHTML = `${esc(iglesia?.name ?? "Panel")}<small id="p-usuario">${esc(staff.full_name ?? sesion.session.user.email)}</small>`;
   mostrar("panel");
-  await Promise.all([cargarPersonas(), cargarOraciones(), cargarInscripciones()]);
+  await Promise.all([cargarPersonas(), cargarOraciones(), cargarInscripciones(), cargarMercadoPago()]);
+  if (resultadoMP) pestana("inscripciones"); /* volvió de conectar Mercado Pago */
 }
 
 /* ---------- Pestañas ---------- */
@@ -439,6 +451,11 @@ $("btn-csv").addEventListener("click", () => {
 
 /* ---------- Inscripciones a eventos ---------- */
 let eventosInsc = [];
+/* Estado del pago (las inscripciones de antes de los pagos no tienen la columna: cuentan como gratis) */
+const estadoPago = (i) => i.pago_estado ?? "no_requiere";
+const ESTADOS_PAGO = { pagado: "Pagado", pendiente: "Pendiente", vencido: "Reserva vencida", reembolsado: "Reembolsado" };
+const REGIONES = { ARS: "es-AR", MXN: "es-MX", BRL: "pt-BR", GTQ: "es-GT", CLP: "es-CL", COP: "es-CO", UYU: "es-UY", PEN: "es-PE" };
+const dinero = (n, moneda) => { try { return new Intl.NumberFormat(REGIONES[moneda] || "es", { style: "currency", currency: moneda || "USD" }).format(n); } catch (e) { return String(n); } };
 const fechaEvento = (iso) => new Intl.DateTimeFormat("es", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(`${iso}T12:00:00Z`));
 
 async function cargarInscripciones() {
@@ -461,19 +478,27 @@ async function cargarInscripciones() {
     return;
   }
   $("lista-inscripciones").innerHTML = eventosInsc.map((e) => {
-    const personasTotal = e.filas.reduce((n, i) => n + 1 + i.acompanantes, 0);
+    /* Confirmadas: gratis o pagadas. Las reservas sin pagar se muestran aparte; las vencidas o reembolsadas no cuentan */
+    const confirmadas = e.filas.filter((i) => ["no_requiere", "pagado"].includes(estadoPago(i)));
+    const pendientes = e.filas.filter((i) => estadoPago(i) === "pendiente");
+    const personasTotal = confirmadas.reduce((n, i) => n + 1 + i.acompanantes, 0);
+    const conPago = e.filas.some((i) => estadoPago(i) !== "no_requiere");
+    const pagadas = e.filas.filter((i) => estadoPago(i) === "pagado");
+    const cobrado = pagadas.reduce((n, i) => n + Number(i.monto ?? 0), 0);
+    const monedaEvento = e.filas.find((i) => i.moneda)?.moneda;
     return `<article class="evento-insc">
       <div class="evento-insc__cabecera">
         <div><h3>${esc(e.titulo)}</h3><span class="chico">${esc(fechaEvento(e.fecha))}${e.fecha < hoy ? " · ya pasó" : ""}</span></div>
-        <span class="total">${personasTotal} ${personasTotal === 1 ? "persona" : "personas"} (${e.filas.length} ${e.filas.length === 1 ? "inscripción" : "inscripciones"})</span>
+        <span class="total">${personasTotal} ${personasTotal === 1 ? "persona" : "personas"} (${confirmadas.length} ${confirmadas.length === 1 ? "inscripción" : "inscripciones"})${pendientes.length ? ` · ${pendientes.length} pendiente${pendientes.length === 1 ? "" : "s"} de pago` : ""}${conPago ? ` · cobrado: ${esc(dinero(cobrado, monedaEvento))}` : ""}</span>
         <button class="boton boton--linea" type="button" data-csv-evento="${esc(e.id)}">Descargar lista (CSV)</button>
       </div>
       <table class="tabla">
-        <thead><tr><th>Nombre</th><th>Contacto</th><th>Acompañantes</th><th>Se inscribió</th></tr></thead>
-        <tbody>${e.filas.map((i) => `<tr>
+        <thead><tr><th>Nombre</th><th>Contacto</th><th>Acompañantes</th>${conPago ? "<th>Pago</th>" : ""}<th>Se inscribió</th></tr></thead>
+        <tbody>${e.filas.map((i) => `<tr${["vencido", "reembolsado"].includes(estadoPago(i)) ? ' class="fila-inactiva"' : ""}>
           <td><span class="nombre">${esc(i.nombre)}</span></td>
           <td>${esc(i.telefono ?? "")}${i.telefono && i.email ? "<br>" : ""}<span class="chico">${esc(i.email ?? "")}</span></td>
           <td>${i.acompanantes}</td>
+          ${conPago ? `<td>${estadoPago(i) === "no_requiere" ? "" : `<span class="etiqueta etiqueta--${estadoPago(i)}">${ESTADOS_PAGO[estadoPago(i)]}</span>`}${i.monto ? `<div class="chico">${esc(dinero(Number(i.monto), i.moneda))}</div>` : ""}</td>` : ""}
           <td class="chico">${fechaHora.format(new Date(i.created_at))}</td>
         </tr>`).join("")}</tbody>
       </table>
@@ -485,11 +510,60 @@ $("lista-inscripciones").addEventListener("click", (ev) => {
   const b = ev.target.closest("[data-csv-evento]");
   if (!b) return;
   const e = eventosInsc.find((x) => x.id === b.dataset.csvEvento);
-  const filas = [["Evento", "Fecha", "Nombre", "Teléfono", "Correo", "Acompañantes", "Se inscribió"]];
-  e.filas.forEach((i) => filas.push([e.titulo, e.fecha, i.nombre, i.telefono, i.email, i.acompanantes, i.created_at]));
+  const filas = [["Evento", "Fecha", "Nombre", "Teléfono", "Correo", "Acompañantes", "Pago", "Monto", "Moneda", "Se inscribió"]];
+  e.filas.forEach((i) => filas.push([e.titulo, e.fecha, i.nombre, i.telefono, i.email, i.acompanantes,
+    estadoPago(i) === "no_requiere" ? "Sin pago" : ESTADOS_PAGO[estadoPago(i)], i.monto ?? "", i.moneda ?? "", i.created_at]));
   descargarCsv(`inscripciones-${e.fecha}-${e.titulo.toLowerCase().replace(/[^a-z0-9]+/g, "-").slice(0, 40)}.csv`, filas);
 });
 $("btn-actualizar-insc").addEventListener("click", cargarInscripciones);
+
+/* ---------- Mercado Pago (cobro de eventos pagos) ---------- */
+/* La función "whatsapp" guarda la cuenta de la iglesia; acá solo se muestra el estado y se inicia la conexión */
+async function llamarFuncion(ruta) {
+  const { data: s } = await db.auth.getSession();
+  const r = await fetch(`${CONFIG.url}/functions/v1/whatsapp/${ruta}`, { method: "POST", headers: { Authorization: `Bearer ${s.session?.access_token ?? ""}` } });
+  return r.json();
+}
+async function cargarMercadoPago() {
+  try {
+    const e = await llamarFuncion("mp/estado");
+    if (!e.configurado && !e.conectada) return; /* Eklesic todavía no habilitó los pagos: no se muestra nada */
+    $("mp-caja").hidden = false;
+    $("mp-texto").textContent = e.conectada
+      ? `Conectado${e.prueba ? " (cuenta de prueba)" : ""}. Los eventos pagos cobran en la cuenta de Mercado Pago de la iglesia.`
+      : "Conecta la cuenta de Mercado Pago de la iglesia para cobrar la inscripción a eventos pagos. El dinero va directo a esa cuenta.";
+    $("btn-mp").hidden = !e.puedeConectar;
+    $("btn-mp").textContent = e.conectada ? "Volver a conectar" : "Conectar Mercado Pago";
+  } catch (e) { /* la función todavía no tiene esta parte: no se muestra */ }
+}
+$("btn-mp").addEventListener("click", async () => {
+  const boton = $("btn-mp");
+  boton.disabled = true;
+  try {
+    const r = await llamarFuncion("mp/enlace");
+    if (r.url) { location.href = r.url; return; } /* pantalla de Mercado Pago para autorizar */
+    $("mp-aviso").className = "aviso aviso--error";
+    $("mp-aviso").textContent = r.error || "No se pudo iniciar la conexión.";
+  } catch (e) {
+    $("mp-aviso").className = "aviso aviso--error";
+    $("mp-aviso").textContent = "No se pudo iniciar la conexión. Intenta de nuevo en unos minutos.";
+  } finally {
+    boton.disabled = false;
+  }
+});
+/* Al volver de Mercado Pago el panel recibe ?mp=conectado|cancelado|vencido|error */
+const resultadoMP = new URLSearchParams(location.search).get("mp");
+const MENSAJES_MP = {
+  conectado: ["¡Listo! La cuenta de Mercado Pago quedó conectada.", false],
+  cancelado: ["No se conectó Mercado Pago: la autorización se canceló.", true],
+  vencido: ["El enlace para conectar venció. Toca «Conectar Mercado Pago» de nuevo.", true],
+  error: ["Mercado Pago no confirmó la conexión. Intenta de nuevo en unos minutos.", true],
+};
+if (MENSAJES_MP[resultadoMP]) {
+  $("mp-aviso").className = "aviso" + (MENSAJES_MP[resultadoMP][1] ? " aviso--error" : " aviso--ok");
+  $("mp-aviso").textContent = MENSAJES_MP[resultadoMP][0];
+  history.replaceState(null, "", location.pathname);
+}
 
 /* ---------- Pedidos de oración ---------- */
 async function cargarOraciones() {

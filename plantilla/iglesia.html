@@ -271,6 +271,11 @@ a { color: inherit; }
 .evento .boton { margin-top: 1rem; padding: .6rem 1.15rem; }
 .evento .lugares { font-size: .9rem; font-weight: 700; color: var(--marea); }
 .evento .lugares:empty { display: none; }
+.evento .precio { font-weight: 700; color: var(--tinta); }
+.insc-total { margin-top: 1rem; font-weight: 700; }
+.insc-total:empty { display: none; }
+#ev-pago { margin: 0 0 1.5rem; padding: .9rem 1.1rem; border-radius: .9rem; background: var(--espuma); }
+#ev-pago:empty { display: none; }
 .dlg-insc { border: 0; border-radius: 1.25rem; padding: clamp(1.25rem, 4vw, 2rem); width: min(30rem, calc(100% - 1.5rem)); background: var(--sal); color: var(--tinta); }
 .dlg-insc::backdrop { background: rgba(8, 24, 28, .65); }
 .dlg-insc h2 { font-size: clamp(1.5rem, 4vw, 1.9rem); margin-bottom: .35rem; }
@@ -512,6 +517,7 @@ a { color: inherit; }
   <section class="seccion" id="eventos">
     <div class="contenedor">
       <div class="cabecera-seccion"><h2>Próximos eventos</h2></div>
+      <p class="aviso" id="ev-pago" role="status"></p>
       <div class="eventos" id="ev-lista"></div>
     </div>
   </section>
@@ -571,6 +577,7 @@ a { color: inherit; }
     <label class="campo"><span>Tu WhatsApp o teléfono</span><input type="tel" id="insc-telefono" autocomplete="tel" maxlength="40"></label>
     <label class="campo"><span>Tu correo (opcional)</span><input type="email" id="insc-email" autocomplete="email" maxlength="160"></label>
     <label class="campo"><span>¿Cuántas personas vienen contigo?</span><select id="insc-acomp"></select></label>
+    <p class="insc-total" id="insc-total" aria-live="polite"></p>
     <div class="trampa" aria-hidden="true"><label>No completar este campo<input type="text" id="insc-web" tabindex="-1" autocomplete="off"></label></div>
     <label class="check"><input type="checkbox" id="insc-consent"><span>Acepto que la iglesia guarde mis datos para esta inscripción y para avisarme sobre el evento.</span></label>
     <p class="aviso" id="insc-aviso" role="status" aria-live="polite"></p>
@@ -748,6 +755,12 @@ const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
 const proximos = IGLESIA.eventos.filter((e) => aFecha(e.fecha) >= hoy).sort((a, b) => aFecha(a.fecha) - aFecha(b.fecha));
 const fmtMes = new Intl.DateTimeFormat("es", { month: "long" });
 const fmtDiaSemana = new Intl.DateTimeFormat("es", { weekday: "long" });
+/* Precio en la moneda de la iglesia ("moneda" del archivo, por ejemplo ARS, MXN o BRL) */
+const precioTexto = (n) => {
+  const regiones = { ARS: "es-AR", MXN: "es-MX", BRL: "pt-BR", GTQ: "es-GT", CLP: "es-CL", COP: "es-CO", UYU: "es-UY", PEN: "es-PE" };
+  try { return new Intl.NumberFormat(regiones[IGLESIA.moneda] || "es", { style: "currency", currency: IGLESIA.moneda, maximumFractionDigits: n % 1 ? 2 : 0 }).format(n); }
+  catch (e) { return String(n); }
+};
 $("ev-lista").innerHTML = proximos.length
   ? proximos.map((e) => {
       const f = aFecha(e.fecha);
@@ -756,6 +769,7 @@ $("ev-lista").innerHTML = proximos.length
         <div class="mes">${fmtMes.format(f)}</div>
         <h3>${esc(e.titulo)}</h3>
         <p>${fmtDiaSemana.format(f)}, ${esc(e.hora)}. ${esc(e.lugar)}</p>
+        ${e.precio ? `<p class="precio">${esc(precioTexto(e.precio))} por persona</p>` : ""}
         ${DB && e.inscripcion && e.id ? `<p class="lugares" data-lugares="${esc(e.id)}"></p>
         <button class="boton boton--marea" type="button" data-evento="${esc(e.id)}">Quiero inscribirme</button>` : ""}
       </article>`;
@@ -780,6 +794,14 @@ if (conInscripcion.length) {
   actualizarLugares();
 
   let eventoAbierto = null;
+  /* En los eventos pagos se cobra por persona: quien se inscribe más sus acompañantes */
+  const mostrarTotal = () => {
+    const personas = 1 + Number($("insc-acomp").value || 0);
+    $("insc-total").textContent = eventoAbierto?.precio
+      ? `Total a pagar: ${precioTexto(eventoAbierto.precio * personas)} (${personas} ${personas === 1 ? "persona" : "personas"}). Se paga con Mercado Pago y tu lugar queda reservado 30 minutos.`
+      : "";
+  };
+  $("insc-acomp").addEventListener("change", mostrarTotal);
   $("insc-acomp").innerHTML = Array.from({ length: 11 }, (_, n) => `<option value="${n}">${n === 0 ? "Vengo solo/a" : n}</option>`).join("");
   $("ev-lista").addEventListener("click", (ev) => {
     const boton = ev.target.closest("[data-evento]");
@@ -789,6 +811,8 @@ if (conInscripcion.length) {
     $("insc-titulo").textContent = eventoAbierto.titulo;
     $("insc-sub").textContent = `${fmtDiaSemana.format(f)} ${f.getDate()} de ${fmtMes.format(f)}, ${eventoAbierto.hora}. ${eventoAbierto.lugar}`;
     $("insc-enviar").hidden = false;
+    $("insc-enviar").textContent = eventoAbierto.precio ? "Continuar al pago" : "Inscribirme";
+    mostrarTotal();
     aviso("insc-aviso", "");
     $("dlg-insc").showModal();
   });
@@ -810,7 +834,13 @@ if (conInscripcion.length) {
       const r = await llamar("inscribir", {
         churchId: DB.churchId, eventoId: eventoAbierto.id, nombre, telefono, email,
         acompanantes: Number($("insc-acomp").value), acepto: true, web: $("insc-web").value,
+        volver: location.origin + location.pathname,
       });
+      if (r.ok && r.pagar) {
+        aviso("insc-aviso", r.mensaje);
+        location.href = r.pagar; /* pantalla de pago de Mercado Pago */
+        return;
+      }
       if (r.ok) {
         aviso("insc-aviso", r.mensaje);
         $("insc-form").reset();
@@ -825,6 +855,18 @@ if (conInscripcion.length) {
       boton.disabled = false;
     }
   });
+}
+
+/* Al volver de Mercado Pago: la página recibe ?pago=listo|pendiente|error */
+const estadoPago = new URLSearchParams(location.search).get("pago");
+const MENSAJES_PAGO = {
+  listo: "¡Gracias! Recibimos tu pago. En unos minutos te llega la confirmación por WhatsApp.",
+  pendiente: "Tu pago está en proceso. Cuando se acredite, te llega la confirmación por WhatsApp.",
+  error: "El pago no se completó. Puedes intentarlo de nuevo: tu lugar queda reservado 30 minutos.",
+};
+if (MENSAJES_PAGO[estadoPago]) {
+  $("ev-pago").textContent = MENSAJES_PAGO[estadoPago];
+  history.replaceState(null, "", location.pathname + location.hash); /* que al recargar no se repita el mensaje */
 }
 
 /* Ministerios */
