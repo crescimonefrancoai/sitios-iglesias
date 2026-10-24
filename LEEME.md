@@ -207,6 +207,17 @@ Límites de los servicios que conviene revisar antes de vender:
 | API de Claude | Límite de pedidos por minuto según el nivel de la cuenta; sube con el uso y el crédito cargado. | Revisar Settings → Limits en console.anthropic.com. |
 | GitHub Pages | Pensado para sitios institucionales, no para alojar comercialmente sitios de clientes; tope de transferencia mensual y de publicaciones por hora, compartido por todos los sitios del repositorio. | Para clientes que pagan, evaluar Cloudflare Pages o Netlify con dominio propio. |
 
+## Importar miembros desde una planilla
+
+En el panel → **Personas** → **Importar planilla**, la iglesia sube su lista en Excel (.xlsx, .xls) o CSV:
+
+1. La primera fila tiene que tener los títulos. El panel **reconoce solo** las columnas habituales (Nombre, Apellido, "Nombre y apellido" juntos, Teléfono/Celular/WhatsApp, Correo/Mail, Fecha de nacimiento/Cumpleaños, Dirección, Género, Estado, Notas/Observaciones) y deja corregir las que no reconoce. Se lee solo la primera hoja.
+2. **Vista previa** antes de guardar: cuántas personas se importan, cuáles ya estaban cargadas (mismo teléfono o correo; si no tienen ninguno, mismo nombre y apellido), filas sin nombre (no se importan), correos inválidos (se importan sin correo) y fechas que no se entienden (se importan sin fecha).
+3. Quien importa tiene que **confirmar que la iglesia tiene autorización** de esas personas. Quedan con origen "Planilla" (`source = 'importado'`) y sin consentimiento propio (`consent_data = false`): la responsable de ese consentimiento es la iglesia.
+4. Se guardan de a 500, así una lista de miles de personas entra sin problemas (hasta 20.000 filas y 5 MB por archivo). Importar la misma planilla dos veces no duplica a nadie.
+
+Detalles: las fechas de texto se leen como día/mes/año; los CSV se leen como texto tal cual (para que 05/06 no se tome como mes/día) y con o sin acentos de Windows; un teléfono guardado como número en Excel se convierte a texto sin perder dígitos. El lector de planillas (SheetJS) se descarga solo cuando alguien importa. Hay una planilla de prueba en `ejemplos/`.
+
 ## Diseños a medida
 
 Las funciones de los sitios (formularios, asistente, inscripciones, pagos) están en **`plantilla/funciones.js`**, compartidas por todos los diseños. Cada diseño solo tiene estructura y estilos. Al armar los sitios, `agente/construir.mjs` inserta los datos de la iglesia y las funciones en su diseño, así cada página sigue siendo un solo archivo.
