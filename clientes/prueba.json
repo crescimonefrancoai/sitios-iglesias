@@ -1,0 +1,91 @@
+{
+  "nombre": "Iglesia de Prueba",
+  "prueba": true,
+  "churchId": "c1028489-083c-4268-b0ee-5186a3c347c0",
+  "moneda": "ARS",
+  "titulo": "Sitio de prueba de Eklesic",
+  "bajada": "Esta iglesia no existe: sirve para probar cambios, formularios, inscripciones y pagos sin tocar la demo ni los sitios de los clientes.",
+  "whatsapp": "5491100000000",
+  "email": "prueba@ejemplo.org",
+  "urlVivo": "https://www.youtube.com/",
+  "urlEnsenanzas": "https://www.youtube.com/",
+  "horarios": [
+    {
+      "dia": "Domingos",
+      "hora": "10:00",
+      "detalle": "Reunión de prueba"
+    },
+    {
+      "dia": "Miércoles",
+      "hora": "20:00",
+      "detalle": "Oración de prueba"
+    }
+  ],
+  "vision": "Probar todo antes de que llegue a una iglesia real.",
+  "quienes": "Una iglesia inventada para hacer pruebas. Los datos, nombres y direcciones son de ejemplo.",
+  "pastores": {
+    "nombres": "Pastor y Pastora de Prueba",
+    "iniciales": "PP",
+    "texto": "Personas inventadas, para ver cómo se ve esta sección."
+  },
+  "pasoTexto": "Formulario de prueba: lo que se cargue acá queda en la iglesia de prueba y no le llega a nadie.",
+  "ensenanzas": [
+    {
+      "titulo": "Enseñanza de prueba",
+      "pastor": "Pastor de Prueba",
+      "fecha": "2026-10-18",
+      "resumen": "Un mensaje inventado para ver cómo se ve la sección de enseñanzas.",
+      "url": "https://www.youtube.com/"
+    }
+  ],
+  "eventos": [
+    {
+      "titulo": "Evento gratis de prueba",
+      "fecha": "2026-12-05",
+      "hora": "18:00",
+      "lugar": "Sede de prueba",
+      "inscripcion": true,
+      "cupo": 20,
+      "avisos": "cada_inscripcion",
+      "id": "prgratis"
+    },
+    {
+      "titulo": "Evento pago de prueba",
+      "fecha": "2026-12-12",
+      "hora": "10:00",
+      "lugar": "Sede de prueba",
+      "inscripcion": true,
+      "cupo": 20,
+      "avisos": "cada_inscripcion",
+      "precio": 1000,
+      "id": "prpagado"
+    }
+  ],
+  "ministerios": [
+    {
+      "nombre": "Ministerio de prueba",
+      "edad": "Todas las edades",
+      "texto": "Texto de ejemplo para ver cómo se ve la sección de ministerios."
+    }
+  ],
+  "ofrendas": {
+    "texto": "Datos de ofrenda de ejemplo: no transferir.",
+    "mercadopago": "https://www.mercadopago.com.ar/",
+    "alias": "prueba.no.transferir",
+    "titular": "Iglesia de Prueba",
+    "banco": "Banco de ejemplo"
+  },
+  "sedes": [
+    {
+      "nombre": "Sede de prueba",
+      "direccion": "Calle de Ejemplo 123, Ciudad",
+      "horarios": "Domingos 10:00"
+    }
+  ],
+  "redes": [
+    {
+      "nombre": "Instagram",
+      "url": "https://www.instagram.com/"
+    }
+  ]
+}
