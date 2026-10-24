@@ -207,6 +207,47 @@ Límites de los servicios que conviene revisar antes de vender:
 | API de Claude | Límite de pedidos por minuto según el nivel de la cuenta; sube con el uso y el crédito cargado. | Revisar Settings → Limits en console.anthropic.com. |
 | GitHub Pages | Pensado para sitios institucionales, no para alojar comercialmente sitios de clientes; tope de transferencia mensual y de publicaciones por hora, compartido por todos los sitios del repositorio. | Para clientes que pagan, evaluar Cloudflare Pages o Netlify con dominio propio. |
 
+## Diseños a medida
+
+Las funciones de los sitios (formularios, asistente, inscripciones, pagos) están en **`plantilla/funciones.js`**, compartidas por todos los diseños. Cada diseño solo tiene estructura y estilos. Al armar los sitios, `agente/construir.mjs` inserta los datos de la iglesia y las funciones en su diseño, así cada página sigue siendo un solo archivo.
+
+- **Diseño base**: `plantilla/iglesia.html` (el de Puerto Seguro). Lo usan las iglesias sin `"diseno"`.
+- **Diseño a medida**: `plantilla/disenos/<nombre>.html`, y en el archivo de la iglesia `"diseno": "<nombre>"` (se carga a mano; el agente no lo cambia).
+- Una mejora en `funciones.js` les llega a todos los diseños a la vez.
+
+Lo que tiene que tener un diseño:
+
+1. Los marcadores dentro de un `<script>` al final del `<body>`, en este orden:
+   ```html
+   <script>
+   const IGLESIA = /*__DATOS__*/null;
+   /*__FUNCIONES__*/
+   </script>
+   ```
+   y `__NOMBRE__` en el `<title>` y `__DESCRIPCION__` en `<meta name="description">`.
+2. Los elementos de cada parte, con estos `id` (la estructura y el estilo de cada uno son libres):
+
+| Parte | Elementos |
+|---|---|
+| Encabezado | `marca-nombre`, `h-titulo`, `h-bajada`, `btn-vivo`, `menu-boton`, `menu` |
+| Horarios | `horarios` |
+| Visión y quiénes somos | `vision`, `quienes-texto` |
+| Pastores | `p-iniciales`, `p-nombres`, `p-texto` |
+| Siguiente paso | `paso-texto`, `paso-boton`, y el formulario `paso-form` con `pf-nombre`, `pf-telefono`, `pf-email`, `pf-web` (trampa para robots, oculto), `pf-consent`, `pf-enviar`, `pf-aviso` |
+| Oración | `or-form` con `or-nombre`, `or-texto`, `or-web` (trampa), `or-guardar`, `or-enviar`, `or-aviso`, `or-nota` |
+| Enseñanzas | `ens-todas`, `ens-lista` |
+| Eventos | `ev-pago` (mensaje al volver de pagar), `ev-lista` |
+| Inscripción | el `<dialog>` `dlg-insc` con `insc-form`, `insc-titulo`, `insc-sub`, `insc-nombre`, `insc-telefono`, `insc-email`, `insc-acomp`, `insc-total`, `insc-web` (trampa), `insc-consent`, `insc-aviso`, `insc-enviar`, `insc-cerrar` |
+| Ministerios | `min-lista` |
+| Ofrendas | `of-texto`, `of-formas` |
+| Sedes y contacto | `sedes-lista`, `c-whatsapp`, `c-email` |
+| Pie | `pie-copy`, `pie-redes` |
+| Asistente | `asis-boton`, `asis-panel`, `asis-cerrar`, `asis-mensajes`, `asis-form`, `asis-texto`, `asis-enviar` |
+
+3. Estilos para el contenido que generan las funciones: `.horario`, `.evento` (`.dia`, `.mes`, `.precio`, `.lugares`), los `<li>` de `ens-lista` (`time`, `h3`, `.quien`, `.ver`), `.ministerio` (`.edad`), `.forma`, `.datos`, `.copiar`, `.sede` (`.horas`), `.asis-msj` (`--usuario`, `--asistente`, `--pensando`) y `.aviso` / `.aviso--error`. El diseño base sirve de referencia.
+
+Si a un diseño le falta una parte, **esa parte no se muestra pero la página funciona**. Al armar los sitios, `construir.mjs` avisa qué partes le faltan a cada iglesia según lo que usa (por ejemplo, si tiene eventos con inscripción y el diseño no tiene `dlg-insc`). Si al diseño le faltan los marcadores, o el archivo no existe, no publica.
+
 ## Iglesia de prueba
 
 `clientes/prueba.json` es una iglesia inventada para probar cambios, formularios, inscripciones y pagos sin tocar la demo (Puerto Seguro) ni a los clientes. Su sitio está en `/prueba/`.

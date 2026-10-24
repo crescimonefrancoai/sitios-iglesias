@@ -102,6 +102,8 @@ export function erroresDeDatos(datos) {
   for (const lista of Object.keys(LISTAS)) errores.push(...erroresDeLista(lista, datos[lista]));
   /* moneda es opcional (código de 3 letras: ARS, MXN, BRL…), pero obligatoria si algún evento tiene precio.
      Se carga a mano: el agente no la puede cambiar. */
+  /* diseno: opcional, nombre del archivo plantilla/disenos/<diseno>.html (diseño a medida). Se carga a mano. */
+  if (datos.diseno !== undefined && !/^[a-z0-9-]{1,40}$/.test(datos.diseno)) errores.push("diseno: tiene que ser un nombre en minúsculas, números y guiones (el de plantilla/disenos/<diseno>.html).");
   if (datos.moneda !== undefined && !/^[A-Z]{3}$/.test(datos.moneda)) errores.push("moneda: tiene que ser un código de 3 letras, como ARS, MXN o BRL.");
   (Array.isArray(datos.eventos) ? datos.eventos : []).forEach((e, i) => {
     if (e?.inscripcion && !e.id) errores.push(`eventos[${i}]: tiene inscripción pero le falta el id.`);
