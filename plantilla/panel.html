@@ -109,6 +109,17 @@ dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
 @media (max-width: 34rem) { .dos { grid-template-columns: 1fr; } }
 .acciones { display: flex; flex-wrap: wrap; gap: .6rem; margin-top: 1.25rem; }
 .meta { margin-top: 1rem; font-size: .88rem; color: var(--suave); }
+dialog.dlg-ancho { width: min(48rem, calc(100% - 1.5rem)); }
+dialog h3 { font-family: var(--sans); font-size: 1rem; font-weight: 700; margin: 1.25rem 0 .5rem; }
+.check { display: flex; gap: .6rem; align-items: flex-start; margin-top: 1rem; font-size: .92rem; cursor: pointer; }
+.check input { width: auto; margin-top: .25rem; flex: none; }
+.imp-col { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem .85rem; align-items: center; padding: .55rem 0; border-bottom: 1px solid var(--linea); }
+.imp-col b { overflow-wrap: anywhere; }
+.imp-col select { padding: .4rem .6rem; }
+@media (max-width: 34rem) { .imp-col { grid-template-columns: 1fr; } }
+.imp-cuentas { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: .75rem 0; font-size: .92rem; }
+.imp-cuentas b { font-family: var(--serif); font-weight: 400; font-size: 1.35rem; margin-right: .25rem; }
+.imp-tabla-caja { overflow-x: auto; }
 </style>
 </head>
 <body>
@@ -146,6 +157,7 @@ dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
       <div class="herramientas">
         <input type="search" id="buscar" placeholder="Buscar por nombre, teléfono o correo" aria-label="Buscar personas">
         <button class="boton boton--lampara" id="btn-nueva" type="button">+ Agregar persona</button>
+        <button class="boton boton--linea" id="btn-importar" type="button">Importar planilla</button>
         <button class="boton boton--linea" id="btn-csv" type="button">Descargar lista (CSV)</button>
         <button class="boton boton--linea" id="btn-actualizar" type="button">Actualizar</button>
       </div>
@@ -190,6 +202,31 @@ dialog h2 { font-size: 1.5rem; margin-bottom: .25rem; }
       <a class="boton boton--linea" id="dp-wa" target="_blank" rel="noopener" hidden>WhatsApp</a>
       <a class="boton boton--linea" id="dp-mail" hidden>Correo</a>
       <button class="boton boton--linea" type="button" id="dp-cerrar">Cerrar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- IMPORTAR PERSONAS DESDE UNA PLANILLA -->
+<dialog id="dlg-importar" class="dlg-ancho">
+  <form id="form-importar" method="dialog">
+    <h2>Importar personas</h2>
+    <div id="imp-paso1">
+      <p class="chico">Sube la planilla de la iglesia en Excel (.xlsx o .xls) o CSV. La primera fila tiene que tener los títulos de las columnas: Nombre, Apellido, Teléfono, Correo, etc.</p>
+      <label class="campo"><span>Planilla</span><input type="file" id="imp-archivo" accept=".xlsx,.xls,.csv,text/csv"></label>
+    </div>
+    <div id="imp-paso2" hidden>
+      <p class="chico" id="imp-archivo-info"></p>
+      <h3>¿Qué hay en cada columna?</h3>
+      <div id="imp-columnas"></div>
+      <label class="campo"><span>Estado para quienes no lo tengan en la planilla</span><select id="imp-estado"></select></label>
+      <h3>Vista previa</h3>
+      <div id="imp-vista"></div>
+      <label class="check"><input type="checkbox" id="imp-consent"><span>Confirmo que la iglesia tiene autorización de estas personas para guardar sus datos y contactarlas.</span></label>
+    </div>
+    <p class="aviso" id="imp-aviso" role="status" aria-live="polite"></p>
+    <div class="acciones">
+      <button class="boton boton--marea" type="button" id="imp-importar" hidden>Importar</button>
+      <button class="boton boton--linea" type="button" id="imp-cerrar">Cerrar</button>
     </div>
   </form>
 </dialog>
@@ -326,7 +363,7 @@ function dibujarPersonas() {
       <td><span class="nombre">${esc(nombreCompleto(p))}</span>${sinContactar(p) ? '<span class="pendiente">Sin contactar</span>' : ""}${p.notes ? `<div class="chico">${esc(p.notes.slice(0, 70))}${p.notes.length > 70 ? "…" : ""}</div>` : ""}</td>
       <td>${esc(p.phone ?? "")}${p.phone && p.email ? "<br>" : ""}<span class="chico">${esc(p.email ?? "")}</span></td>
       <td><select data-estado="${esc(p.id)}" aria-label="Estado de ${esc(nombreCompleto(p))}">${Object.entries(ESTADOS).map(([k, v]) => `<option value="${k}"${p.status === k ? " selected" : ""}>${esc(v)}</option>`).join("")}</select></td>
-      <td class="chico">${p.source === "web_form" ? "Página web" : p.source === "presencial" ? "En persona" : esc(p.source ?? "")}</td>
+      <td class="chico">${p.source === "web_form" ? "Página web" : p.source === "presencial" ? "En persona" : p.source === "importado" ? "Planilla" : esc(p.source ?? "")}</td>
       <td class="chico">${fechaHora.format(new Date(p.created_at))}</td>
     </tr>`).join("")}</tbody></table>`;
 }
@@ -447,6 +484,236 @@ $("btn-csv").addEventListener("click", () => {
   const filas = [["Nombre", "Apellido", "Teléfono", "Correo", "Estado", "Origen", "Se anotó", "Notas"]];
   personas.forEach((p) => filas.push([p.first_name, p.last_name, p.phone, p.email, ESTADOS[p.status] ?? p.status, p.source, p.created_at, p.notes]));
   descargarCsv(`personas-${hoyISO()}.csv`, filas);
+});
+
+/* ---------- Importar personas desde una planilla (Excel o CSV) ---------- */
+/* El lector de planillas (SheetJS) se descarga solo cuando alguien importa */
+const LECTOR_PLANILLAS = "https://cdn.sheetjs.com/xlsx-0.20.3/package/xlsx.mjs";
+const MAX_FILAS = 20000;
+const MAX_MB = 5;
+const CAMPOS_IMPORTAR = {
+  ignorar: "No importar",
+  nombre_completo: "Nombre y apellido (juntos)",
+  first_name: "Nombre",
+  last_name: "Apellido",
+  phone: "Teléfono / WhatsApp",
+  email: "Correo",
+  birth_date: "Fecha de nacimiento",
+  address: "Dirección",
+  gender: "Género",
+  status: "Estado",
+  notes: "Notas",
+};
+const sinAcentos = (t) => String(t ?? "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/* Adivina qué tiene cada columna por su título (se puede corregir en la ventana) */
+function adivinarCampo(titulo) {
+  const t = sinAcentos(titulo);
+  if (!t) return "ignorar";
+  if (/nombre.*apellido|apellido.*nombre|nombre completo|full ?name/.test(t)) return "nombre_completo";
+  if (/apellido|last ?name|surname/.test(t)) return "last_name";
+  if (/^(primer )?nombres?$|^first ?name$|^name$/.test(t)) return "first_name";
+  if (/tel|cel|whats|movil|phone/.test(t)) return "phone";
+  if (/mail|correo/.test(t)) return "email";
+  if (/nacim|cumple|birth/.test(t)) return "birth_date";
+  if (/direcc|domicilio|address|calle/.test(t)) return "address";
+  if (/genero|sexo|gender/.test(t)) return "gender";
+  if (/estado|status|condicion/.test(t)) return "status";
+  if (/nota|observ|coment/.test(t)) return "notes";
+  if (/^nombre/.test(t)) return "first_name";
+  return "ignorar";
+}
+
+function estadoDe(valor, porDefecto) {
+  const t = sinAcentos(valor);
+  if (!t) return porDefecto;
+  if (/^miembro|^member/.test(t)) return "member";
+  if (/visit/.test(t)) return "visitor";
+  if (/regular|asiste|congreg/.test(t)) return "regular";
+  if (/inactiv|^baja/.test(t)) return "inactive";
+  if (/anot|prospect|interes/.test(t)) return "prospect";
+  return porDefecto;
+}
+
+const dosDigitos = (n) => String(n).padStart(2, "0");
+const fechaValida = (a, m, d) => {
+  const f = new Date(Date.UTC(a, m - 1, d));
+  return f.getUTCFullYear() === a && f.getUTCMonth() === m - 1 && f.getUTCDate() === d && a >= 1900 && a <= new Date().getFullYear()
+    ? `${a}-${dosDigitos(m)}-${dosDigitos(d)}` : null;
+};
+/* Fechas como vienen en las planillas: celda de fecha de Excel, número de serie de Excel, 15/03/1980 o 1980-03-15 */
+function fechaDe(v) {
+  if (v instanceof Date && !isNaN(v)) return fechaValida(v.getFullYear(), v.getMonth() + 1, v.getDate());
+  if (typeof v === "number" && v > 1 && v < 80000) {
+    const f = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86400000);
+    return fechaValida(f.getUTCFullYear(), f.getUTCMonth() + 1, f.getUTCDate());
+  }
+  const t = String(v ?? "").trim();
+  let m = t.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{2}|\d{4})$/);
+  if (m) {
+    let a = Number(m[3]);
+    if (a < 100) a += a > new Date().getFullYear() % 100 ? 1900 : 2000;
+    return fechaValida(a, Number(m[2]), Number(m[1]));
+  }
+  m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+  return m ? fechaValida(Number(m[1]), Number(m[2]), Number(m[3])) : null;
+}
+
+/* Un número largo de Excel (5491123456789) puede venir como número: se pasa a texto sin decimales */
+const textoDe = (v) => (v instanceof Date ? "" : typeof v === "number" ? String(Math.round(v)) : String(v ?? "")).replace(/\s+/g, " ").trim();
+/* Para detectar repetidos: los últimos 8 dígitos del teléfono (así 11 2345-6789 y +54 9 11 2345 6789 coinciden) */
+const claveTelefono = (t) => { const d = String(t ?? "").replace(/\D/g, ""); return d.length >= 8 ? d.slice(-8) : null; };
+const claveCorreo = (c) => (c ? String(c).trim().toLowerCase() : null);
+/* Sin teléfono ni correo, la única forma de reconocer a alguien ya cargado es su nombre completo */
+const claveNombre = (p) => sinAcentos(`${p.first_name ?? ""} ${p.last_name ?? ""}`).replace(/\s+/g, " ").trim() || null;
+
+/* Convierte las filas de la planilla en personas listas para guardar, y separa repetidas y problemas */
+function prepararImportacion(filas, mapeo, estadoPorDefecto, existentes) {
+  const telefonos = new Set(existentes.map((p) => claveTelefono(p.phone)).filter(Boolean));
+  const correos = new Set(existentes.map((p) => claveCorreo(p.email)).filter(Boolean));
+  const nombresSinContacto = new Set(existentes.filter((p) => !claveTelefono(p.phone) && !claveCorreo(p.email)).map(claveNombre).filter(Boolean));
+  const resultado = { nuevas: [], repetidas: [], sinNombre: 0, correosInvalidos: 0, fechasInvalidas: 0 };
+  for (const fila of filas) {
+    const v = {};
+    mapeo.forEach((campo, i) => { if (campo !== "ignorar" && v[campo] === undefined) v[campo] = fila[i]; });
+    let nombre = textoDe(v.first_name), apellido = textoDe(v.last_name);
+    if (v.nombre_completo !== undefined && !nombre) {
+      const partes = textoDe(v.nombre_completo).split(" ").filter(Boolean);
+      nombre = partes.shift() ?? "";
+      apellido = apellido || partes.join(" ");
+    }
+    if (!nombre) { resultado.sinNombre++; continue; }
+    let email = textoDe(v.email).toLowerCase();
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { resultado.correosInvalidos++; email = ""; }
+    const nacimiento = v.birth_date !== undefined && v.birth_date !== "" ? fechaDe(v.birth_date) : null;
+    if (v.birth_date !== undefined && v.birth_date !== "" && !nacimiento) resultado.fechasInvalidas++;
+    const persona = {
+      first_name: nombre.slice(0, 120),
+      last_name: apellido.slice(0, 120) || null,
+      phone: textoDe(v.phone).slice(0, 40) || null,
+      email: email.slice(0, 160) || null,
+      birth_date: nacimiento,
+      address: textoDe(v.address).slice(0, 300) || null,
+      gender: textoDe(v.gender).slice(0, 40) || null,
+      notes: textoDe(v.notes).slice(0, 2000) || null,
+      status: estadoDe(v.status, estadoPorDefecto),
+    };
+    const tel = claveTelefono(persona.phone), correo = claveCorreo(persona.email), claveNom = claveNombre(persona);
+    const repetida = tel || correo ? (tel && telefonos.has(tel)) || (correo && correos.has(correo)) : nombresSinContacto.has(claveNom);
+    if (repetida) { resultado.repetidas.push(persona); continue; }
+    if (tel) telefonos.add(tel);
+    if (correo) correos.add(correo);
+    if (!tel && !correo) nombresSinContacto.add(claveNom);
+    resultado.nuevas.push(persona);
+  }
+  return resultado;
+}
+
+let planilla = null; /* { titulos, filas } de la planilla cargada */
+let importacion = null;
+
+function mostrarAvisoImportar(texto, tipo = "") {
+  $("imp-aviso").className = "aviso" + (tipo ? ` aviso--${tipo}` : "");
+  $("imp-aviso").textContent = texto;
+}
+
+$("btn-importar").addEventListener("click", () => {
+  planilla = importacion = null;
+  $("form-importar").reset();
+  $("imp-paso1").hidden = false;
+  $("imp-paso2").hidden = true;
+  $("imp-importar").hidden = true;
+  mostrarAvisoImportar("");
+  $("dlg-importar").showModal();
+});
+$("imp-cerrar").addEventListener("click", () => $("dlg-importar").close());
+$("imp-estado").innerHTML = Object.entries(ESTADOS).map(([k, v]) => `<option value="${k}"${k === "member" ? " selected" : ""}>${esc(v)}</option>`).join("");
+
+$("imp-archivo").addEventListener("change", async () => {
+  const archivo = $("imp-archivo").files[0];
+  if (!archivo) return;
+  if (archivo.size > MAX_MB * 1024 * 1024) return mostrarAvisoImportar(`La planilla pesa más de ${MAX_MB} MB. Guárdala solo con la hoja de personas y vuelve a intentar.`, "error");
+  mostrarAvisoImportar("Leyendo la planilla…");
+  try {
+    const XLSX = await import(LECTOR_PLANILLAS);
+    /* Los CSV se leen como texto tal cual: si no, SheetJS toma 05/06/1992 como mes/día (formato de EE. UU.) */
+    const esCSV = /\.csv$/i.test(archivo.name) || archivo.type === "text/csv";
+    const libro = XLSX.read(await archivo.arrayBuffer(), { cellDates: true, raw: esCSV });
+    const hoja = libro.Sheets[libro.SheetNames[0]];
+    const todas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: true, defval: "" })
+      .filter((f) => f.some((c) => String(c).trim() !== ""));
+    if (todas.length < 2) return mostrarAvisoImportar("La planilla no tiene personas: la primera fila tiene que ser la de títulos y debajo, una persona por fila.", "error");
+    if (todas.length - 1 > MAX_FILAS) return mostrarAvisoImportar(`La planilla tiene más de ${MAX_FILAS} filas. Divídela en partes y súbelas de a una.`, "error");
+    planilla = { titulos: todas[0].map((t) => textoDe(t)), filas: todas.slice(1) };
+    const ejemplos = (i) => planilla.filas.map((f) => textoDe(f[i])).filter(Boolean).slice(0, 3).join(" · ");
+    $("imp-columnas").innerHTML = planilla.titulos.map((titulo, i) => `<div class="imp-col">
+      <div><b>${esc(titulo || `Columna ${i + 1}`)}</b><div class="chico">${esc(ejemplos(i)) || "(vacía)"}</div></div>
+      <select data-columna="${i}" aria-label="Qué hay en la columna ${esc(titulo || i + 1)}">${Object.entries(CAMPOS_IMPORTAR).map(([k, v]) =>
+        `<option value="${k}"${k === adivinarCampo(titulo) ? " selected" : ""}>${esc(v)}</option>`).join("")}</select>
+    </div>`).join("");
+    $("imp-archivo-info").textContent = `«${archivo.name}»: ${planilla.filas.length} ${planilla.filas.length === 1 ? "fila" : "filas"}${libro.SheetNames.length > 1 ? `, de la hoja «${libro.SheetNames[0]}» (se lee solo la primera hoja)` : ""}.`;
+    $("imp-paso1").hidden = true;
+    $("imp-paso2").hidden = false;
+    mostrarAvisoImportar("");
+    actualizarVistaImportar();
+  } catch (e) {
+    mostrarAvisoImportar("No se pudo leer la planilla. Revisa que sea un Excel o CSV y vuelve a intentar.", "error");
+  }
+});
+
+function actualizarVistaImportar() {
+  if (!planilla) return;
+  const mapeo = planilla.titulos.map((_, i) => $("imp-columnas").querySelector(`[data-columna="${i}"]`).value);
+  const tieneNombre = mapeo.includes("first_name") || mapeo.includes("nombre_completo");
+  if (!tieneNombre) {
+    $("imp-vista").innerHTML = '<p class="aviso aviso--error">Indica qué columna tiene el nombre (o el nombre y apellido juntos).</p>';
+    $("imp-importar").hidden = true;
+    return;
+  }
+  importacion = prepararImportacion(planilla.filas, mapeo, $("imp-estado").value, personas);
+  const { nuevas, repetidas, sinNombre, correosInvalidos, fechasInvalidas } = importacion;
+  const muestra = nuevas.slice(0, 8);
+  $("imp-vista").innerHTML = `<div class="imp-cuentas">
+      <span><b>${nuevas.length}</b> para importar</span>
+      ${repetidas.length ? `<span><b>${repetidas.length}</b> ya estaban cargadas (mismo teléfono o correo; si no tienen ninguno, mismo nombre): no se importan</span>` : ""}
+      ${sinNombre ? `<span><b>${sinNombre}</b> sin nombre: no se importan</span>` : ""}
+    </div>
+    ${correosInvalidos ? `<p class="chico">${correosInvalidos} correo(s) no parecen válidos: esas personas se importan sin correo.</p>` : ""}
+    ${fechasInvalidas ? `<p class="chico">${fechasInvalidas} fecha(s) de nacimiento no se entendieron: se importan sin fecha.</p>` : ""}
+    ${muestra.length ? `<div class="imp-tabla-caja"><table class="tabla">
+      <thead><tr><th>Nombre</th><th>Contacto</th><th>Estado</th><th>Nacimiento</th></tr></thead>
+      <tbody>${muestra.map((p) => `<tr><td><span class="nombre">${esc(nombreCompleto(p))}</span></td>
+        <td>${esc(p.phone ?? "")}${p.phone && p.email ? "<br>" : ""}<span class="chico">${esc(p.email ?? "")}</span></td>
+        <td class="chico">${esc(ESTADOS[p.status])}</td><td class="chico">${esc(p.birth_date ?? "")}</td></tr>`).join("")}</tbody>
+    </table></div>${nuevas.length > muestra.length ? `<p class="chico">…y ${nuevas.length - muestra.length} más.</p>` : ""}` : ""}`;
+  $("imp-importar").hidden = !nuevas.length;
+  $("imp-importar").textContent = `Importar ${nuevas.length} ${nuevas.length === 1 ? "persona" : "personas"}`;
+}
+$("imp-columnas").addEventListener("change", actualizarVistaImportar);
+$("imp-estado").addEventListener("change", actualizarVistaImportar);
+
+$("imp-importar").addEventListener("click", async () => {
+  if (!importacion?.nuevas.length) return;
+  if (!$("imp-consent").checked) return mostrarAvisoImportar("Para importar, confirma que la iglesia tiene autorización de estas personas.", "error");
+  const boton = $("imp-importar");
+  boton.disabled = true;
+  const filas = importacion.nuevas.map((p) => ({ ...p, church_id: iglesiaId, source: "importado", consent_data: false }));
+  let hechas = 0;
+  for (let i = 0; i < filas.length; i += 500) {
+    mostrarAvisoImportar(`Importando… ${hechas} de ${filas.length}`);
+    const { error } = await db.from("people").insert(filas.slice(i, i + 500));
+    if (error) {
+      boton.disabled = false;
+      await cargarPersonas();
+      return mostrarAvisoImportar(`Se importaron ${hechas} de ${filas.length}. Falló el resto (${error.message}). Si vuelves a importar la misma planilla, las ya cargadas aparecen como repetidas y no se duplican.`, "error");
+    }
+    hechas += Math.min(500, filas.length - i);
+  }
+  boton.disabled = false;
+  boton.hidden = true;
+  planilla = importacion = null;
+  await cargarPersonas();
+  mostrarAvisoImportar(`¡Listo! Se importaron ${hechas} ${hechas === 1 ? "persona" : "personas"}.`, "ok");
 });
 
 /* ---------- Inscripciones a eventos ---------- */
