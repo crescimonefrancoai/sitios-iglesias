@@ -50,7 +50,9 @@ for (const cliente of listarClientes()) {
   const html = plantilla
     .replace("/*__DATOS__*/null", () => comoJson(visibles))
     .replace("__NOMBRE__", () => escHtml(datos.nombre))
-    .replace("__DESCRIPCION__", () => escHtml(`${datos.nombre}. Horarios de reunión, enseñanzas, eventos y cómo llegar.`));
+    .replace("__DESCRIPCION__", () => escHtml(`${datos.nombre}. Horarios de reunión, enseñanzas, eventos y cómo llegar.`))
+    /* "prueba": true -> iglesia para probar: los buscadores no la indexan */
+    .replace('<meta name="description"', () => (datos.prueba === true ? '<meta name="robots" content="noindex, nofollow">\n<meta name="description"' : '<meta name="description"'));
   fs.mkdirSync(path.join(dist, cliente), { recursive: true });
   fs.writeFileSync(path.join(dist, cliente, "index.html"), html);
   console.log(`✓ ${cliente}${conexion && churchId ? " (conectado a la base de datos)" : ""}`);

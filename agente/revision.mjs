@@ -32,6 +32,8 @@ async function revisar(cliente) {
     guardarCliente(cliente, datos);
     hechos.push(`Se quitaron ${vencidos.length} evento(s) vencido(s): ${vencidos.map((e) => `${e.titulo} (${e.fecha})`).join(", ")}.`);
   }
+  // La iglesia de prueba tiene datos de ejemplo a propósito: no se generan avisos por ella
+  if (datos.prueba === true) return { nombre: `${datos.nombre} (iglesia de prueba)`, hechos, avisos };
   if (!datos.eventos.length) avisos.push("No hay próximos eventos: la sección muestra «Pronto publicaremos las próximas fechas».");
 
   const ultima = datos.ensenanzas.map((e) => e.fecha).sort().pop();
