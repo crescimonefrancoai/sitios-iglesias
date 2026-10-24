@@ -207,6 +207,16 @@ Límites de los servicios que conviene revisar antes de vender:
 | API de Claude | Límite de pedidos por minuto según el nivel de la cuenta; sube con el uso y el crédito cargado. | Revisar Settings → Limits en console.anthropic.com. |
 | GitHub Pages | Pensado para sitios institucionales, no para alojar comercialmente sitios de clientes; tope de transferencia mensual y de publicaciones por hora, compartido por todos los sitios del repositorio. | Para clientes que pagan, evaluar Cloudflare Pages o Netlify con dominio propio. |
 
+## Iglesia de prueba
+
+`clientes/prueba.json` es una iglesia inventada para probar cambios, formularios, inscripciones y pagos sin tocar la demo (Puerto Seguro) ni a los clientes. Su sitio está en `/prueba/`.
+
+- `"prueba": true` hace que los buscadores no la indexen y que la revisión semanal no abra avisos por sus datos de ejemplo.
+- En la base es la iglesia `c1028489-083c-4268-b0ee-5186a3c347c0` (`base-de-datos/10-alta-prueba.sql`). Tiene su propio usuario del panel, porque cada usuario pertenece a una sola iglesia.
+- No tiene números de WhatsApp habilitados, así que las pruebas no le mandan avisos a nadie. Para probar un aviso, el SQL explica cómo pasarle un número por un rato.
+- Tiene un evento gratis y uno pago con inscripción. Para el pago, se conecta desde su panel la cuenta vendedor de prueba de Mercado Pago.
+- Los cambios por WhatsApp no le llegan (no tiene números), pero se le pueden pedir desde GitHub: Actions → **Agente - pedir un cambio** → Run workflow, con cliente `prueba`.
+
 ## Agregar una iglesia
 
 Copiar `clientes/puerto-seguro.json` con otro nombre (minúsculas y guiones, por ejemplo `luz-del-valle.json`), cargar sus datos y subirlo. El sitio aparece en `/<ese-nombre>/`.
