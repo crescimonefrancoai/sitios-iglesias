@@ -4,10 +4,10 @@
   "churchId": "0aa69392-5f53-4a43-9c20-2c1a246500c9",
   "titulo": "Un puerto seguro para tu familia",
   "bajada": "Somos una comunidad cristiana que se reúne para adorar a Dios, aprender de su Palabra y acompañarnos en la vida real.",
-  "whatsapp": "5491100000000",
-  "email": "contacto@ejemplo.org",
-  "urlVivo": "https://www.youtube.com/",
-  "urlEnsenanzas": "https://www.youtube.com/",
+  "whatsapp": "5491150163879",
+  "email": "digitaleklesic@gmail.com",
+  "urlVivo": "https://www.youtube.com/@matias.pronesti/streams",
+  "urlEnsenanzas": "https://www.youtube.com/@matias.pronesti/videos",
   "youtube": "@matias.pronesti",
   "horarios": [
     {
@@ -29,9 +29,9 @@
   "vision": "Jesús es la salvación.",
   "quienes": "Empezamos como un grupo de familias que se reunía en una casa. Hoy seguimos creyendo lo mismo: la fe se vive mejor en comunidad, con la puerta abierta y una mesa para todos.",
   "pastores": {
-    "nombres": "Matías y Pamela",
-    "iniciales": "MP",
-    "texto": "Matías y Pamela lideran la iglesia junto a un equipo de servidores. Les apasiona enseñar la Biblia con palabras simples y acompañar a cada persona en su proceso, sin apuro y sin juicio."
+    "nombres": "Pastores de prueba",
+    "iniciales": "PP",
+    "texto": "Este espacio presenta a los pastores de la iglesia: quiénes son, cómo empezó su ministerio y qué los apasiona de acompañar a cada persona."
   },
   "pasoTexto": "Si recién empiezas a caminar con Jesús, o quieres volver a hacerlo, queremos acompañarte. Escríbenos y te presentamos a alguien que te guíe en los primeros pasos.",
   "ensenanzas": [
@@ -62,43 +62,9 @@
       "fecha": "2026-10-02",
       "resumen": "Una enseñanza para descubrir cómo vivir con pasión cada día.",
       "url": "https://www.youtube.com/watch?v=I6bdu8WkYIg"
-    },
-    {
-      "titulo": "Cuando el mar se agita",
-      "pastor": "Pastor Daniel Herrera",
-      "fecha": "2026-09-27",
-      "resumen": "Cómo mantener la calma cuando todo a nuestro alrededor se mueve.",
-      "url": "https://www.youtube.com/"
-    },
-    {
-      "titulo": "Anclas para la semana",
-      "pastor": "Pastora Lucía Herrera",
-      "fecha": "2026-09-20",
-      "resumen": "Tres hábitos sencillos que sostienen la fe en los días comunes.",
-      "url": "https://www.youtube.com/"
-    },
-    {
-      "titulo": "La mesa está servida",
-      "pastor": "Pastor Daniel Herrera",
-      "fecha": "2026-09-13",
-      "resumen": "La invitación de Dios es abierta: lo que falta es sentarse.",
-      "url": "https://www.youtube.com/"
-    },
-    {
-      "titulo": "Perdonar para avanzar",
-      "pastor": "Pastora Lucía Herrera",
-      "fecha": "2026-09-06",
-      "resumen": "Soltar el rencor no cambia el pasado, pero libera el futuro.",
-      "url": "https://www.youtube.com/"
     }
   ],
   "eventos": [
-    {
-      "titulo": "Jornada de ayuda comunitaria",
-      "fecha": "2026-10-24",
-      "hora": "09:00",
-      "lugar": "Barrio Norte"
-    },
     {
       "titulo": "Noche de jóvenes",
       "fecha": "2026-10-30",
@@ -109,7 +75,11 @@
       "titulo": "Retiro de matrimonios",
       "fecha": "2026-11-07",
       "hora": "Todo el día",
-      "lugar": "Quinta Los Sauces"
+      "lugar": "Quinta Los Sauces",
+      "inscripcion": true,
+      "cupo": 40,
+      "avisos": "cada_inscripcion",
+      "id": "retiro26"
     },
     {
       "titulo": "Bautismos",
@@ -118,20 +88,14 @@
       "lugar": "Sede central"
     },
     {
-      "titulo": "Evento de prueba",
-      "fecha": "2026-12-06",
-      "hora": "18:00",
-      "lugar": "Iglesia",
+      "titulo": "Cena de Navidad",
+      "fecha": "2026-12-19",
+      "hora": "20:30",
+      "lugar": "Sede central",
       "inscripcion": true,
-      "cupo": 20,
+      "cupo": 120,
       "avisos": "resumen_diario",
-      "id": "r1dv35kq"
-    },
-    {
-      "titulo": "Bautismos",
-      "fecha": "2026-12-12",
-      "hora": "21:00",
-      "lugar": "Sede central"
+      "id": "navidad6"
     }
   ],
   "ministerios": [
@@ -159,7 +123,7 @@
   "ofrendas": {
     "texto": "Cada ofrenda sostiene la obra de la iglesia y ayuda a las personas que nos rodean. Damos con alegría y sin presión.",
     "mercadopago": "https://www.mercadopago.com.ar/",
-    "alias": "puertoseguro.iglesia",
+    "alias": "alias.de.ejemplo",
     "titular": "Iglesia Cristiana Puerto Seguro",
     "banco": "Banco de ejemplo"
   },
@@ -182,7 +146,7 @@
     },
     {
       "nombre": "YouTube",
-      "url": "https://www.youtube.com/"
+      "url": "https://www.youtube.com/@matias.pronesti"
     },
     {
       "nombre": "Facebook",
