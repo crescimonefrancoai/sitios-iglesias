@@ -332,15 +332,17 @@ const urlPanel = () => {
 };
 
 /* Las enseñanzas y los eventos están en el archivo del cliente en GitHub, no en la base.
-   Se guarda unos minutos para no pedirlo en cada inscripción. */
+   Se guarda unos minutos para no pedirlo en cada inscripción. Si el archivo no existe da {};
+   si GitHub no respondió da null y no se guarda, así la próxima vez se vuelve a pedir. */
 // deno-lint-ignore no-explicit-any
 const archivos = new Map<string, { hasta: number; datos: Promise<any> }>();
 function archivoCliente(slug: string) {
   const guardado = archivos.get(slug);
   if (guardado && guardado.hasta > Date.now()) return guardado.datos;
   const datos = fetch(`https://raw.githubusercontent.com/${env("GITHUB_REPO")}/main/clientes/${slug}.json`)
-    .then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    .then((r) => (r.ok ? r.json() : r.status === 404 ? {} : null)).catch(() => null);
   archivos.set(slug, { hasta: Date.now() + 3 * 60 * 1000, datos });
+  datos.then((d) => { if (!d && archivos.get(slug)?.datos === datos) archivos.delete(slug); });
   return datos;
 }
 
@@ -405,9 +407,10 @@ const horaTexto = (hora?: string) => !hora ? "en horario a confirmar" : /^\d{1,2
 const cuandoTexto = (fecha: string, hora?: string) => `${fechaLarga(fecha)}, ${horaTexto(hora)}`;
 const esUuid = (v: unknown): v is string => typeof v === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
 
-async function eventosConInscripcion(slug: string): Promise<Evento[]> {
+/* null si no se pudo leer el archivo de la iglesia: quien lo usa no marca nada y lo deja para la próxima pasada */
+async function eventosConInscripcion(slug: string): Promise<Evento[] | null> {
   const datos = await archivoCliente(slug);
-  return (datos?.eventos ?? []).filter((e: Evento) => e.inscripcion && e.id);
+  return datos && (datos.eventos ?? []).filter((e: Evento) => e.inscripcion && e.id);
 }
 
 /* Personas inscritas por evento (cada inscripción cuenta 1 + sus acompañantes) */
@@ -445,7 +448,9 @@ async function inscribir(req: Request) {
   if (c.web) return responderJson(200, { ok: true, mensaje: "¡Listo!" }); // campo trampa: solo lo completan los robots
   const ig = esUuid(c.churchId) ? await datosIglesia(c.churchId) : null;
   if (!ig) return responderJson(404, { error: "No encontramos la iglesia." });
-  const evento = (await eventosConInscripcion(ig.slug)).find((e) => e.id === c.eventoId);
+  const eventos = await eventosConInscripcion(ig.slug);
+  if (!eventos) return responderJson(503, { error: "No pudimos cargar el evento. Intenta de nuevo en un momento." });
+  const evento = eventos.find((e) => e.id === c.eventoId);
   if (!evento) return responderJson(404, { error: "Este evento ya no tiene la inscripción abierta." });
   if (evento.fecha < hoyEn(ig.zona)) return responderJson(409, { error: "Este evento ya pasó." });
 
@@ -506,8 +511,10 @@ const marcarDelEvento = (churchId: string, eventoId: string, columna: string) =>
   db.from("inscripciones").update({ [columna]: new Date().toISOString() })
     .eq("church_id", churchId).eq("evento_id", eventoId).is(columna, null).in("pago_estado", ["no_requiere", "pagado"]).select("id");
 
+/* undefined si el evento ya no está en el archivo; null si no se pudo leer el archivo */
 async function eventoDe(ig: Iglesia, eventoId: string) {
-  return (await eventosConInscripcion(ig.slug)).find((e) => e.id === eventoId);
+  const eventos = await eventosConInscripcion(ig.slug);
+  return eventos && eventos.find((e) => e.id === eventoId);
 }
 
 /* Hace las tareas de a varias a la vez: WhatsApp acepta muchos mensajes por segundo, y así un evento
@@ -534,10 +541,10 @@ async function avisarInscripciones() {
 
   const { data: avisar } = await db.from("inscripciones").select("*").is("aviso_enviado_at", null).in("pago_estado", ["no_requiere", "pagado"]).order("created_at").limit(50);
   for (const r of avisar ?? []) {
-    if (!(await tomar("inscripciones", "aviso_enviado_at", r.id))) continue;
     const ig = await datosIglesia(r.church_id);
-    if (!ig) continue;
-    const ev = await eventoDe(ig, r.evento_id);
+    const ev = ig && await eventoDe(ig, r.evento_id);
+    if (ig && ev === null) continue; // no se pudo leer el archivo: sin saber si es "resumen_diario", queda para la próxima pasada
+    if (!(await tomar("inscripciones", "aviso_enviado_at", r.id)) || !ig) continue;
     if (ev?.avisos === "resumen_diario") continue; // esos van en el resumen del día
     const total = (await ocupadosPorEvento(r.church_id, r.evento_id))[r.evento_id] ?? 0;
     await avisarEquipo(ig, "aviso_inscripcion", [ev?.titulo ?? r.evento_titulo, r.nombre, r.acompanantes, inscritosTexto(total, ev?.cupo)]);
@@ -553,6 +560,7 @@ async function resumirInscripciones() {
   for (const { church_id, evento_id, evento_titulo } of eventos.values()) {
     const ig = await datosIglesia(church_id);
     const ev = ig && await eventoDe(ig, evento_id);
+    if (ig && ev === null) continue; // no se pudo leer el archivo: no se marca nada y se reintenta en la próxima pasada
     if (!ig || ev?.avisos !== "resumen_diario") { await marcarDelEvento(church_id, evento_id, "resumen_enviado_at"); continue; } // no corresponde resumen
     if (horaLocal(ig.zona) !== 19) continue;
     const { data: tomadas } = await marcarDelEvento(church_id, evento_id, "resumen_enviado_at");
@@ -573,10 +581,11 @@ async function recordarEventos() {
     if (r.evento_fecha < manana) { await tomar("inscripciones", "recordatorio_enviado_at", r.id); return; } // ya es hoy o pasó: no corresponde
     const hora = horaLocal(ig.zona);
     if (r.evento_fecha !== manana || hora < 9 || hora >= 20) return;
+    const ev = await eventoDe(ig, r.evento_id);
+    if (ev === null) return; // no se pudo leer el archivo: se manda en la próxima pasada, con la hora y el lugar
     if (!(await tomar("inscripciones", "recordatorio_enviado_at", r.id))) return;
     const tel = telefonoWhatsApp(r.telefono, ig.pais);
     if (!tel) return;
-    const ev = await eventoDe(ig, r.evento_id);
     await enviarPlantilla(tel, "recordatorio_evento", ig.idioma, [primerNombre(r.nombre), ev?.titulo ?? r.evento_titulo, horaTexto(ev?.hora), ev?.lugar ?? "el lugar que confirmaremos"]);
   });
 }
