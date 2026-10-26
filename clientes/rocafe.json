@@ -12,17 +12,17 @@
   "horarios": [
     {
       "dia": "Domingos",
-      "hora": "10:00 a. m.",
+      "hora": "10:00 am",
       "detalle": "Servicio general y escuela para niños"
     },
     {
       "dia": "Miércoles",
-      "hora": "7:00 p. m.",
+      "hora": "7:00 pm",
       "detalle": "Estudio bíblico y oración"
     },
     {
       "dia": "Sábados",
-      "hora": "5:00 p. m.",
+      "hora": "5:00 pm",
       "detalle": "Reunión de jóvenes"
     }
   ],
@@ -39,19 +39,19 @@
     {
       "titulo": "Retiro de jóvenes",
       "fecha": "2026-11-21",
-      "hora": "8:00 a. m.",
+      "hora": "8:00 am",
       "lugar": "Sede principal"
     },
     {
       "titulo": "Culto de Acción de Gracias",
       "fecha": "2026-11-29",
-      "hora": "10:00 a. m.",
+      "hora": "10:00 am",
       "lugar": "Sede principal"
     },
     {
       "titulo": "Navidad en ROCAFE",
       "fecha": "2026-12-20",
-      "hora": "6:00 p. m.",
+      "hora": "6:00 pm",
       "lugar": "Sede principal"
     }
   ],
@@ -88,7 +88,7 @@
     {
       "nombre": "Sede principal",
       "direccion": "Dirección a confirmar, Venezuela",
-      "horarios": "Domingos 10:00 a. m."
+      "horarios": "Domingos 10:00 am"
     }
   ],
   "redes": [
