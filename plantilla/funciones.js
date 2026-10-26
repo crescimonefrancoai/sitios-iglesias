@@ -152,6 +152,12 @@ $("ens-lista").innerHTML = IGLESIA.ensenanzas.map((e) =>
      <span class="ver">Ver mensaje</span>
    </a></li>`
 ).join("");
+/* Sin enseñanzas todavía (por ejemplo, una iglesia recién dada de alta): no se muestra la sección vacía */
+if (!IGLESIA.ensenanzas.length) {
+  const seccion = document.getElementById("ensenanzas");
+  if (seccion) seccion.hidden = true;
+  document.querySelectorAll('a[href="#ensenanzas"]').forEach((a) => (a.closest("li") ?? a).remove());
+}
 
 /* Eventos: solo se muestran los que todavía no pasaron */
 const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
