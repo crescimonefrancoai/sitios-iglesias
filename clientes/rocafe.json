@@ -1,0 +1,100 @@
+{
+  "nombre": "ROCAFE",
+  "prueba": true,
+  "diseno": "rocafe",
+  "moneda": "USD",
+  "titulo": "Una roca firme para tu fe",
+  "bajada": "Somos una familia que se reúne para adorar a Dios, aprender de su Palabra y caminar juntos, edificados sobre la roca que es Cristo.",
+  "whatsapp": "5491150163879",
+  "email": "digitaleklesic@gmail.com",
+  "urlVivo": "https://www.instagram.com/rocafevzla/",
+  "urlEnsenanzas": "https://www.instagram.com/rocafevzla/",
+  "horarios": [
+    {
+      "dia": "Domingos",
+      "hora": "10:00 a. m.",
+      "detalle": "Servicio general y escuela para niños"
+    },
+    {
+      "dia": "Miércoles",
+      "hora": "7:00 p. m.",
+      "detalle": "Estudio bíblico y oración"
+    },
+    {
+      "dia": "Sábados",
+      "hora": "5:00 p. m.",
+      "detalle": "Reunión de jóvenes"
+    }
+  ],
+  "vision": "Edificar vidas sobre la roca que es Cristo, para que ninguna tormenta las derribe.",
+  "quienes": "ROCAFE nació del deseo de un grupo de familias de tener una iglesia donde cada persona fuera recibida y acompañada. Creemos que la fe crece en comunidad: por eso nos reunimos, oramos juntos y nos cuidamos durante la semana.",
+  "pastores": {
+    "nombres": "Pastores de ROCAFE",
+    "iniciales": "RF",
+    "texto": "Este espacio presenta a los pastores de la iglesia: quiénes son, cómo empezó su ministerio y qué los apasiona de acompañar a cada persona."
+  },
+  "pasoTexto": "Si recién empiezas a caminar con Jesús, o quieres volver a hacerlo, queremos acompañarte. Déjanos tus datos y alguien del equipo te escribe para guiarte en los primeros pasos.",
+  "ensenanzas": [],
+  "eventos": [
+    {
+      "titulo": "Retiro de jóvenes",
+      "fecha": "2026-11-21",
+      "hora": "8:00 a. m.",
+      "lugar": "Sede principal"
+    },
+    {
+      "titulo": "Culto de Acción de Gracias",
+      "fecha": "2026-11-29",
+      "hora": "10:00 a. m.",
+      "lugar": "Sede principal"
+    },
+    {
+      "titulo": "Navidad en ROCAFE",
+      "fecha": "2026-12-20",
+      "hora": "6:00 p. m.",
+      "lugar": "Sede principal"
+    }
+  ],
+  "ministerios": [
+    {
+      "nombre": "Niños",
+      "edad": "De 3 a 11 años",
+      "texto": "Un espacio seguro donde los niños aprenden de Jesús jugando, mientras sus padres están en el servicio."
+    },
+    {
+      "nombre": "Jóvenes",
+      "edad": "De 12 a 25 años",
+      "texto": "Reuniones, música y amistad para una generación que quiere vivir su fe de verdad."
+    },
+    {
+      "nombre": "Matrimonios",
+      "edad": "Parejas y familias",
+      "texto": "Encuentros para fortalecer el hogar con herramientas prácticas y la Palabra."
+    },
+    {
+      "nombre": "Alabanza",
+      "edad": "Músicos y cantantes",
+      "texto": "Un equipo que sirve guiando a la iglesia a la presencia de Dios."
+    }
+  ],
+  "ofrendas": {
+    "texto": "Cada ofrenda sostiene la obra de la iglesia y ayuda a las personas que nos rodean. Damos con alegría y sin presión.",
+    "mercadopago": "https://www.instagram.com/rocafevzla/",
+    "alias": "datos.de.ejemplo",
+    "titular": "ROCAFE",
+    "banco": "Datos de ejemplo"
+  },
+  "sedes": [
+    {
+      "nombre": "Sede principal",
+      "direccion": "Dirección a confirmar, Venezuela",
+      "horarios": "Domingos 10:00 a. m."
+    }
+  ],
+  "redes": [
+    {
+      "nombre": "Instagram",
+      "url": "https://www.instagram.com/rocafevzla/"
+    }
+  ]
+}
