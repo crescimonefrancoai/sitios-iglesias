@@ -6,9 +6,8 @@
   "bajada": "Somos una comunidad cristiana que se reúne para adorar a Dios, aprender de su Palabra y acompañarnos en la vida real.",
   "whatsapp": "5491150163879",
   "email": "digitaleklesic@gmail.com",
-  "urlVivo": "https://www.youtube.com/@matias.pronesti/streams",
-  "urlEnsenanzas": "https://www.youtube.com/@matias.pronesti/videos",
-  "youtube": "@matias.pronesti",
+  "urlVivo": "https://www.youtube.com/",
+  "urlEnsenanzas": "https://www.youtube.com/",
   "horarios": [
     {
       "dia": "Domingos",
@@ -29,39 +28,39 @@
   "vision": "Jesús es la salvación.",
   "quienes": "Empezamos como un grupo de familias que se reunía en una casa. Hoy seguimos creyendo lo mismo: la fe se vive mejor en comunidad, con la puerta abierta y una mesa para todos.",
   "pastores": {
-    "nombres": "Matías y Pamela",
-    "iniciales": "MP",
+    "nombres": "Pastores de prueba",
+    "iniciales": "PP",
     "texto": "Este espacio presenta a los pastores de la iglesia: quiénes son, cómo empezó su ministerio y qué los apasiona de acompañar a cada persona."
   },
   "pasoTexto": "Si recién empiezas a caminar con Jesús, o quieres volver a hacerlo, queremos acompañarte. Escríbenos y te presentamos a alguien que te guíe en los primeros pasos.",
   "ensenanzas": [
     {
-      "titulo": "Cómo comprar sin dinero",
-      "pastor": "Pastor Matías Pronesti",
-      "fecha": "2026-10-23",
-      "resumen": "Un episodio de Matecitos y Palabra para que compartas un mate y reflexiones con la Palabra sobre cómo comprar sin dinero.",
-      "url": "https://www.youtube.com/watch?v=REgoppR1asU"
+      "titulo": "Un ancla para el alma",
+      "pastor": "Pastores de prueba",
+      "fecha": "2026-10-25",
+      "resumen": "Mensaje de ejemplo: cómo la esperanza en Dios nos mantiene firmes cuando todo alrededor se mueve.",
+      "url": "https://www.youtube.com/"
     },
     {
-      "titulo": "No me equivoqué contigo",
-      "pastor": "Pastor Matías Pronesti",
-      "fecha": "2026-10-16",
-      "resumen": "Un episodio de Matecitos y Palabra donde el pastor Matías conversa con el profeta León Ruiz y te comparte una palabra para tu vida.",
-      "url": "https://www.youtube.com/watch?v=ibJojMNyYS4"
+      "titulo": "La fe que se vive en casa",
+      "pastor": "Pastores de prueba",
+      "fecha": "2026-10-18",
+      "resumen": "Mensaje de ejemplo: ideas prácticas para orar y leer la Biblia en familia durante la semana.",
+      "url": "https://www.youtube.com/"
     },
     {
-      "titulo": "Cómo pasar de la escasez a la abundancia",
-      "pastor": "Pastor Matías Pronesti",
-      "fecha": "2026-10-09",
-      "resumen": "Un mensaje cercano, con mate y Palabra, sobre cómo pasar de la escasez a la abundancia en tu vida.",
-      "url": "https://www.youtube.com/watch?v=8PJif_jE6BA"
+      "titulo": "Cuando Dios calma la tormenta",
+      "pastor": "Pastores de prueba",
+      "fecha": "2026-10-11",
+      "resumen": "Mensaje de ejemplo sobre Marcos 4: confiar en Jesús en medio de los momentos difíciles.",
+      "url": "https://www.youtube.com/"
     },
     {
-      "titulo": "Cómo tener una vida apasionada",
-      "pastor": "Pastor Matías Pronesti",
-      "fecha": "2026-10-02",
-      "resumen": "Una enseñanza para descubrir cómo vivir con pasión cada día.",
-      "url": "https://www.youtube.com/watch?v=I6bdu8WkYIg"
+      "titulo": "Nadie camina solo",
+      "pastor": "Pastores de prueba",
+      "fecha": "2026-10-04",
+      "resumen": "Mensaje de ejemplo: el valor de la comunidad y de acompañarnos unos a otros.",
+      "url": "https://www.youtube.com/"
     }
   ],
   "eventos": [
@@ -146,7 +145,7 @@
     },
     {
       "nombre": "YouTube",
-      "url": "https://www.youtube.com/@matias.pronesti"
+      "url": "https://www.youtube.com/"
     },
     {
       "nombre": "Facebook",
