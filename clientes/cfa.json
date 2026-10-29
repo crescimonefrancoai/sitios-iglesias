@@ -35,7 +35,78 @@
     "texto": "El pastor Emilio Abreu fundó la Iglesia CFA y su legado sigue vivo en cada vida transformada. La pastora Bethany Abreu guía hoy a esta familia como pastora principal, con el amor de 1 Corintios 13."
   },
   "pasoTexto": "Si es tu primera vez o quieres volver a empezar con Jesús, no tienes que hacerlo solo. Escríbenos y alguien del equipo te acompaña en tus primeros pasos y te ayuda a encontrar una célula cerca de tu casa.",
-  "ensenanzas": [],
+  "ensenanzas": [
+    {
+      "titulo": "En las manos de Jesús",
+      "pastor": "Pastor Sergio Hornung",
+      "fecha": "2026-10-28",
+      "resumen": "Con los discípulos de Emaús, descubre que aun en las pruebas sigues en las manos de Jesús, que te toma, bendice, forma y usa.",
+      "url": "https://www.youtube.com/watch?v=52wWXYalGfk"
+    },
+    {
+      "titulo": "El poder de la lealtad",
+      "pastor": "Pastor Israel Chaparro",
+      "fecha": "2026-10-28",
+      "resumen": "Con Elías y Eliseo, aprende que la verdadera lealtad a Dios y a otros se demuestra en las pruebas y se vive, no solo se dice.",
+      "url": "https://www.youtube.com/watch?v=sVzIPZA1Tsw"
+    },
+    {
+      "titulo": "Unánimes: un mismo corazón, una misma dirección, un mismo propósito",
+      "pastor": "Pastores Emilio y Bethany Abreu",
+      "fecha": "2026-10-28",
+      "resumen": "Un panel que te recuerda que la unidad nace en tu corazón y te invita a caminar junto a otros para llevar el amor de Jesús.",
+      "url": "https://www.youtube.com/watch?v=Wn6OnK4RFhw"
+    },
+    {
+      "titulo": "El poder de la visión",
+      "pastor": "Pastor Sergio Hornung",
+      "fecha": "2026-10-27",
+      "resumen": "Te anima a cuidar la visión que Dios te dio y a caminar en fe para verla cumplida, aun cuando el camino se ponga difícil.",
+      "url": "https://www.youtube.com/watch?v=SYaluMqY70Y"
+    },
+    {
+      "titulo": "Unánimes: el poder de caminar en una misma visión",
+      "pastor": "Pastora Bethany Abreu",
+      "fecha": "2026-10-27",
+      "resumen": "Descubre tres claves de la visión: ver con fe lo que Dios quiere hacer, creer en sus promesas y avanzar en obediencia.",
+      "url": "https://www.youtube.com/watch?v=kEG7FnXqY84"
+    },
+    {
+      "titulo": "¿Estás ungido para esto?",
+      "pastor": "Pastor Israel Chaparro",
+      "fecha": "2026-10-27",
+      "resumen": "Con la historia de Bezaleel, descubre que Dios te dio dones y unción para servir con fidelidad y bendecir a otros.",
+      "url": "https://www.youtube.com/watch?v=U7s2C2fG-h8"
+    },
+    {
+      "titulo": "Una fe valiente",
+      "pastor": "Pastor Sergio Hornung",
+      "fecha": "2026-10-26",
+      "resumen": "Una prédica que te habla sobre vivir una fe valiente.",
+      "url": "https://www.youtube.com/watch?v=_6BCdIx4W6c"
+    },
+    {
+      "titulo": "Así vendrá",
+      "pastor": "Pastor Joshua Abreu",
+      "fecha": "2026-10-19",
+      "resumen": "Te invita a esperar con esperanza el regreso de Jesús, viviendo firme con el poder del Espíritu Santo.",
+      "url": "https://www.youtube.com/watch?v=SHcsrRy2P2A"
+    },
+    {
+      "titulo": "Jesucristo es superior",
+      "pastor": "Pastor Paolo Lacota",
+      "fecha": "2026-10-18",
+      "resumen": "Con la vida de Pablo, descubre que en Cristo estás completo y que toda tu vida puede reflejar su amor con excelencia.",
+      "url": "https://www.youtube.com/watch?v=q5-cPxsgLS0"
+    },
+    {
+      "titulo": "Cuando la vida te exprime",
+      "pastor": "Pastor Joshua Abreu",
+      "fecha": "2026-10-11",
+      "resumen": "Con la vida de Moisés, descubre que la presión revela tu interior y que la clave es permanecer en Jesús y en su gracia.",
+      "url": "https://www.youtube.com/watch?v=oxxhT6Mnnfs"
+    }
+  ],
   "eventos": [
     {
       "titulo": "Noche de adoración",
