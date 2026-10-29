@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="__DESCRIPCION__">
+<title>__NOMBRE__</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ==========================================================
+   IGLESIA CFA: diseño a medida. Noche azul, luces de escenario
+   y los colores de su logo (la llama roja y azul) con el naranja de «Somos Uno».
+   Estructura propia (inicio centrado con haces de luz, cultos en franja,
+   cifras, versículo en azul, eventos en tarjetas, enseñanzas tipo video).
+   ========================================================== */
+:root {
+  --noche: #0A1330;           /* franjas oscuras (iguales en modo claro y oscuro) */
+  --noche-honda: #060C22;
+  --noche-texto: #F3F5FB;
+  --noche-suave: #B5BEDA;
+  --luz: #F8A94B;             /* naranja cálido, como el anillo de «Somos Uno» */
+  --rojo: #D12C22;
+  --rojo-hover: #E23C31;
+  --rojo-texto: #FFFFFF;
+  --azul-py: #0038A8;         /* franja del versículo */
+  --papel: #F7F6F2;           /* fondo de la página */
+  --nube: #ECEEF5;            /* secciones alternadas */
+  --tarjeta: #FFFFFF;
+  --tinta: #0E1530;
+  --suave: #4F5772;
+  --linea: #DADDE8;
+  --azul: #1F3FA8;            /* acentos y enlaces */
+  --azul-texto: #FFFFFF;
+  --foco: #1F3FA8;
+  --titulo: "Bricolage Grotesque", "Arial Narrow", system-ui, sans-serif;
+  --sans: "Instrument Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --papel: #0B1024;
+    --nube: #111833;
+    --tarjeta: #161E3D;
+    --tinta: #EEF1FA;
+    --suave: #A9B1CC;
+    --linea: #263055;
+    --azul: #9DB2FF;
+    --azul-texto: #0B1024;
+    --foco: #F8A94B;
+    --noche: #070D24;
+    --azul-py: #0A2D7A;
+  }
+}
+:root[data-theme="dark"] {
+  --papel: #0B1024;
+  --nube: #111833;
+  --tarjeta: #161E3D;
+  --tinta: #EEF1FA;
+  --suave: #A9B1CC;
+  --linea: #263055;
+  --azul: #9DB2FF;
+  --azul-texto: #0B1024;
+  --foco: #F8A94B;
+  --noche: #070D24;
+  --azul-py: #0A2D7A;
+}
+
+/* ---------- Base ---------- */
+:root { box-sizing: border-box; }
+*, *::before, *::after { box-sizing: inherit; }
+html { background: var(--noche-honda); scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 5rem); }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body {
+  margin: 0; background: var(--papel); color: var(--tinta);
+  font-family: var(--sans); font-size: 1.0625rem; line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+h1, h2, h3 { font-family: var(--titulo); font-weight: 800; line-height: 1.02; margin: 0; letter-spacing: -.025em; }
+h2 { font-size: clamp(2.1rem, 5vw, 3.5rem); }
+h3 { font-size: 1.35rem; font-weight: 700; letter-spacing: -.01em; }
+p { margin: 0; }
+ul, ol, dl, dd { margin: 0; padding: 0; list-style: none; }
+a { color: inherit; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 3px solid var(--foco); outline-offset: 3px; }
+.oscura :focus-visible, .barra :focus-visible, .pie :focus-visible { outline-color: var(--luz); }
+
+.contenedor { width: min(74rem, 100% - 2rem); margin-inline: auto; }
+.seccion { padding-block: clamp(4rem, 9vw, 7rem); }
+.seccion--nube { background: var(--nube); }
+.oscura { background: var(--noche); color: var(--noche-texto); }
+.suave { color: var(--suave); }
+.antetitulo {
+  display: inline-flex; align-items: center; gap: .55rem; margin-bottom: 1rem;
+  font: 700 .8rem/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--rojo);
+}
+.antetitulo::before { content: ""; width: .55rem; height: .55rem; border-radius: 50%; background: currentColor; }
+.oscura .antetitulo { color: var(--luz); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .antetitulo { color: #FF8A80; } :root:not([data-theme="light"]) .oscura .antetitulo { color: var(--luz); } }
+:root[data-theme="dark"] .antetitulo { color: #FF8A80; }
+:root[data-theme="dark"] .oscura .antetitulo { color: var(--luz); }
+.cabecera { display: flex; justify-content: space-between; align-items: end; flex-wrap: wrap; gap: 1.25rem 2rem; margin-bottom: clamp(2rem, 4vw, 3rem); }
+
+.saltar { position: absolute; left: 1rem; top: -4rem; z-index: 60; background: var(--luz); color: var(--noche); padding: .6rem 1rem; border-radius: 999px; font-weight: 700; }
+.saltar:focus { top: calc(env(safe-area-inset-top, 0px) + .75rem); }
+
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+  padding: .9rem 1.65rem; border-radius: 999px; border: 2px solid transparent;
+  font: 700 1rem/1.2 var(--sans); text-decoration: none; cursor: pointer;
+}
+.boton--lampara { background: var(--rojo); color: var(--rojo-texto); }
+.boton--lampara:hover { background: var(--rojo-hover); }
+.boton--marea { background: var(--azul); color: var(--azul-texto); }
+.boton--marea:hover { filter: brightness(1.1); }
+.boton--linea { border-color: currentColor; background: transparent; color: inherit; }
+.boton--linea:hover { background: color-mix(in srgb, currentColor 12%, transparent); }
+.boton[disabled] { opacity: .6; cursor: wait; }
+
+/* ---------- Barra (siempre oscura) ---------- */
+.barra {
+  position: sticky; top: 0; z-index: 30;
+  padding-top: env(safe-area-inset-top, 0px);
+  background: color-mix(in srgb, var(--noche) 94%, transparent); color: var(--noche-texto);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(243, 245, 251, .08);
+}
+.barra__fila { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 4.5rem; }
+.marca { display: flex; align-items: center; gap: .7rem; text-decoration: none; font: 800 1.2rem var(--titulo); letter-spacing: -.01em; }
+.marca svg { width: 2.25rem; height: 2.25rem; flex: none; }
+.menu-boton {
+  display: none; background: transparent; color: inherit; cursor: pointer;
+  border: 1.5px solid rgba(243, 245, 251, .3); border-radius: 999px; padding: .5rem 1.1rem; font: 700 .95rem var(--sans);
+}
+.menu { display: flex; align-items: center; gap: 2rem; }
+.menu ul { display: flex; gap: 1.6rem; }
+.menu a:not(.boton) { text-decoration: none; font-weight: 600; font-size: .98rem; padding-block: .5rem; color: var(--noche-suave); }
+.menu a:not(.boton):hover { color: var(--noche-texto); }
+.menu .boton { padding: .6rem 1.2rem; }
+.menu .boton::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: #fff; box-shadow: 0 0 0 3px rgba(255,255,255,.3); }
+@media (prefers-reduced-motion: no-preference) { .menu .boton::before { animation: latido 1.6s ease-in-out infinite; } }
+@keyframes latido { 50% { box-shadow: 0 0 0 6px rgba(255,255,255,0); } }
+@media (max-width: 62rem) {
+  .menu-boton { display: inline-block; }
+  .menu {
+    display: none; position: absolute; left: 0; right: 0; top: 100%;
+    flex-direction: column; align-items: stretch; gap: 1rem;
+    background: var(--noche); padding: 1rem 1rem 1.5rem; border-bottom: 1px solid rgba(243, 245, 251, .1);
+  }
+  .menu.abierto { display: flex; }
+  .menu ul { flex-direction: column; gap: .15rem; }
+  .menu a:not(.boton) { display: block; padding-block: .7rem; font-size: 1.1rem; color: var(--noche-texto); }
+}
+
+/* ---------- Inicio: centrado, con haces de luz de escenario ---------- */
+.inicio { position: relative; overflow: hidden; isolation: isolate; text-align: center; padding-block: clamp(4.5rem, 11vw, 8.5rem) clamp(2.5rem, 5vw, 3.5rem); }
+.haces { position: absolute; inset: -10% -20% auto; height: 120%; z-index: -1; pointer-events: none; }
+.haces span {
+  position: absolute; top: -8%; left: 50%; width: 46rem; height: 120%; transform-origin: 50% 0;
+  background: conic-gradient(from 180deg at 50% 0, transparent 166deg, rgba(255, 210, 122, .30) 180deg, transparent 194deg);
+  filter: blur(6px);
+}
+.haces span:nth-child(1) { transform: translateX(-50%) rotate(-24deg); }
+.haces span:nth-child(2) { transform: translateX(-50%) rotate(0deg); background: conic-gradient(from 180deg at 50% 0, transparent 170deg, rgba(255, 255, 255, .20) 180deg, transparent 190deg); }
+.haces span:nth-child(3) { transform: translateX(-50%) rotate(24deg); }
+@media (prefers-reduced-motion: no-preference) {
+  .haces span:nth-child(1) { animation: barrido1 9s ease-in-out infinite alternate; }
+  .haces span:nth-child(3) { animation: barrido3 11s ease-in-out infinite alternate; }
+}
+@keyframes barrido1 { to { transform: translateX(-50%) rotate(-12deg); } }
+@keyframes barrido3 { to { transform: translateX(-50%) rotate(12deg); } }
+.inicio::after { /* bruma azul al pie del escenario */
+  content: ""; position: absolute; left: 50%; bottom: -14rem; width: 70rem; height: 26rem; transform: translateX(-50%); z-index: -1;
+  background: radial-gradient(closest-side, rgba(56, 96, 230, .6), transparent);
+}
+.inicio h1 { font-size: clamp(3.1rem, 10vw, 7.4rem); max-width: 12ch; margin-inline: auto; text-wrap: balance; }
+.inicio h1::after { /* rojo y azul, como la llama del logo */
+  content: ""; display: block; width: 7.5rem; height: 6px; margin: 1.6rem auto 0; border-radius: 3px;
+  background: linear-gradient(90deg, #D12C22, #2F5BEA);
+}
+.inicio__bajada { margin: 1.5rem auto 0; max-width: 44ch; font-size: clamp(1.1rem, 2vw, 1.3rem); color: var(--noche-suave); }
+.inicio__acciones { margin-top: 2.25rem; display: flex; flex-wrap: wrap; justify-content: center; gap: .8rem; }
+
+/* Cultos: franja de tarjetas al pie del inicio */
+.cultos { margin-top: clamp(3.5rem, 8vw, 5.5rem); text-align: left; }
+.cultos__titulo { font: 700 .8rem/1 var(--sans); letter-spacing: .18em; text-transform: uppercase; color: var(--noche-suave); text-align: center; margin-bottom: 1rem; }
+.horarios { display: grid; grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); gap: .9rem; }
+.horario {
+  display: flex; flex-direction: column; gap: .2rem; padding: 1.25rem 1.4rem;
+  background: rgba(243, 245, 251, .06); border: 1px solid rgba(243, 245, 251, .12); border-radius: 1.1rem;
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+}
+.horario dt { font-weight: 700; font-size: .8rem; letter-spacing: .16em; text-transform: uppercase; color: var(--luz); }
+.horario dd { display: flex; flex-direction: column; }
+.horario strong { font: 800 2.4rem/1.05 var(--titulo); letter-spacing: -.02em; }
+.horario span { font-size: .95rem; color: var(--noche-suave); }
+@media (max-width: 36rem) {
+  .inicio .antetitulo .ciudad { display: none; }
+  .horarios { gap: .6rem; }
+  .horario { display: grid; grid-template-columns: 6.5rem 1fr; align-items: center; padding: .9rem 1.1rem; }
+  .horario strong { font-size: 1.75rem; }
+}
+
+/* ---------- Cifras ---------- */
+.cifras { padding-block: clamp(2.5rem, 5vw, 3.5rem); border-bottom: 1px solid var(--linea); }
+.cifras ul { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1.5rem; }
+.cifras li { border-left: 3px solid var(--rojo); padding-left: 1rem; }
+.cifras b { display: block; font: 800 clamp(2.2rem, 4.5vw, 3.2rem)/1 var(--titulo); letter-spacing: -.03em; color: var(--azul); }
+.cifras span { display: block; margin-top: .45rem; color: var(--suave); font-size: .98rem; line-height: 1.4; }
+@media (max-width: 50rem) { .cifras ul { grid-template-columns: 1fr 1fr; gap: 1.75rem 1.25rem; } }
+
+/* ---------- Nosotros + pastora ---------- */
+.nosotros { display: grid; grid-template-columns: 1.3fr .7fr; gap: clamp(2.5rem, 6vw, 5rem); align-items: center; }
+.nosotros__vision { margin-top: 1.25rem; font: 700 clamp(1.5rem, 3vw, 2.15rem)/1.2 var(--titulo); letter-spacing: -.02em; }
+.nosotros__texto { margin-top: 1.5rem; max-width: 60ch; }
+.pastor { position: relative; overflow: hidden; background: var(--noche); color: var(--noche-texto); border-radius: 1.5rem; padding: 2.25rem 2rem 2rem; text-align: center; }
+.pastor::before { content: ""; position: absolute; inset: 0 0 auto; height: 60%; background: conic-gradient(from 180deg at 50% 0, transparent 160deg, rgba(255, 210, 122, .18) 180deg, transparent 200deg); pointer-events: none; }
+.pastor__foto {
+  position: relative; width: 9rem; height: 9rem; margin: 0 auto 1.25rem; border-radius: 50%;
+  display: grid; place-items: center; background: #13204A; color: var(--luz);
+  font: 800 2.9rem var(--titulo); outline: 3px solid var(--rojo); outline-offset: 5px;
+}
+.pastor small { position: relative; display: block; font: 700 .76rem var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--noche-suave); }
+.pastor .nombres { position: relative; margin-top: .35rem; font: 800 1.6rem/1.15 var(--titulo); letter-spacing: -.02em; }
+.pastor p:last-child { position: relative; margin-top: 1rem; color: var(--noche-suave); }
+@media (max-width: 56rem) { .nosotros { grid-template-columns: 1fr; } .pastor { max-width: 28rem; } }
+
+/* ---------- Versículo en azul ---------- */
+.versiculo { background: var(--azul-py); color: #FFFFFF; padding-block: clamp(3.5rem, 8vw, 5.5rem); text-align: center; }
+.versiculo blockquote { margin: 0 auto; max-width: 46rem; font: 700 clamp(1.5rem, 3.6vw, 2.5rem)/1.2 var(--titulo); letter-spacing: -.02em; text-wrap: balance; }
+.versiculo cite { display: block; margin-top: 1.25rem; font: 700 .82rem var(--sans); letter-spacing: .18em; text-transform: uppercase; font-style: normal; color: var(--luz); }
+
+/* ---------- Eventos: tarjetas con fecha grande ---------- */
+.eventos { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.25rem; }
+.evento {
+  display: grid; grid-template-columns: auto 1fr; align-content: start; column-gap: .75rem;
+  background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 1.25rem; padding: 1.5rem;
+}
+.evento .dia { grid-column: 1; grid-row: 1; font: 800 3.4rem/.9 var(--titulo); letter-spacing: -.04em; color: var(--rojo); }
+.evento .mes { grid-column: 2; grid-row: 1; align-self: end; padding-bottom: .2rem; font: 700 .8rem var(--sans); letter-spacing: .16em; text-transform: uppercase; color: var(--suave); }
+.evento > :not(.dia):not(.mes) { grid-column: 1 / -1; }
+.evento h3 { margin-top: 1.25rem; padding-top: 1.1rem; border-top: 1px solid var(--linea); font-size: 1.5rem; }
+.evento p { margin-top: .35rem; color: var(--suave); }
+.evento p:first-letter { text-transform: uppercase; }
+.evento .boton { justify-self: start; margin-top: 1rem; padding: .6rem 1.15rem; }
+.evento .lugares { font-size: .9rem; font-weight: 700; color: var(--azul); }
+.evento .lugares:empty { display: none; }
+.evento .precio { font-weight: 700; color: var(--tinta); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .evento .dia { color: #FF8A80; } }
+:root[data-theme="dark"] .evento .dia { color: #FF8A80; }
+#ev-pago { margin: 0 0 1.5rem; padding: .9rem 1.1rem; border-radius: .8rem; background: var(--nube); }
+#ev-pago:empty { display: none; }
+.vacio { color: var(--suave); }
+
+/* ---------- Siguiente paso y oración ---------- */
+.pasos-seccion { position: relative; overflow: hidden; isolation: isolate; }
+.pasos-seccion::before { content: ""; position: absolute; right: -10rem; top: -10rem; width: 40rem; height: 40rem; z-index: -1; background: radial-gradient(closest-side, rgba(56, 96, 230, .35), transparent); }
+.pasos { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(2.5rem, 6vw, 5rem); align-items: center; }
+.pasos h2 { margin-bottom: 1.25rem; }
+.paso > p { color: var(--noche-suave); font-size: 1.12rem; max-width: 46ch; }
+.paso .boton { margin-top: 2rem; }
+.paso form { margin-top: 1.5rem; max-width: 30rem; }
+.oracion { background: var(--papel); color: var(--tinta); border-radius: 1.5rem; padding: clamp(1.75rem, 4vw, 2.5rem); }
+.oracion h3 { font-size: 1.9rem; font-weight: 800; letter-spacing: -.02em; margin-bottom: .5rem; }
+.campo { display: block; margin-top: 1rem; }
+.campo span { display: block; font-weight: 700; font-size: .92rem; margin-bottom: .35rem; }
+.campo input, .campo textarea, .campo select {
+  width: 100%; font: inherit; color: var(--tinta); background: var(--tarjeta);
+  border: 1.5px solid var(--linea); border-radius: .75rem; padding: .75rem .9rem;
+}
+.paso .campo span { color: var(--noche-texto); }
+.paso .campo input { background: #F7F6F2; color: #0E1530; border-color: transparent; }
+.campo textarea { min-height: 7rem; resize: vertical; }
+.check { display: flex; gap: .65rem; align-items: flex-start; margin-top: 1.1rem; font-size: .92rem; line-height: 1.45; cursor: pointer; }
+.check input { width: 1.2rem; height: 1.2rem; margin-top: .1rem; flex: none; accent-color: var(--rojo); }
+.paso form .boton { margin-top: 1.25rem; }
+.fila-botones { display: flex; flex-wrap: wrap; gap: .75rem; margin-top: 1.25rem; }
+.trampa { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+.aviso { margin-top: 1rem; font-weight: 700; }
+.aviso:empty { display: none; }
+.paso .aviso--error { color: #FFC2BC; }
+.oracion .aviso--error, .dlg-insc .aviso--error { color: #B3261E; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .oracion .aviso--error, :root:not([data-theme="light"]) .dlg-insc .aviso--error { color: #FF9C90; } }
+:root[data-theme="dark"] .oracion .aviso--error, :root[data-theme="dark"] .dlg-insc .aviso--error { color: #FF9C90; }
+.nota-datos { margin-top: .85rem; font-size: .88rem; color: var(--suave); }
+@media (max-width: 56rem) { .pasos { grid-template-columns: 1fr; } }
+
+/* ---------- Enseñanzas: tarjetas tipo video ---------- */
+.ens { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 1.25rem; }
+.ens a { display: flex; flex-direction: column; gap: .5rem; height: 100%; padding: 0 0 1.5rem; overflow: hidden; text-decoration: none; background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 1.25rem; }
+.ens a::before {
+  content: ""; display: block; aspect-ratio: 16 / 8; margin-bottom: .75rem;
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='30' fill='%23D12C22'/%3E%3Cpath d='M26 21l18 11-18 11z' fill='%23fff'/%3E%3C/svg%3E") center / 3.5rem no-repeat,
+    conic-gradient(from 180deg at 50% 0, transparent 160deg, rgba(255, 210, 122, .25) 180deg, transparent 200deg),
+    var(--noche);
+}
+.ens a > * { padding-inline: 1.5rem; }
+.ens time { font-size: .85rem; font-weight: 700; letter-spacing: .06em; color: var(--suave); }
+.ens h3 { font-size: 1.4rem; }
+.ens p { color: var(--suave); }
+.ens .quien { font-size: .92rem; font-weight: 700; color: var(--tinta); }
+.ens .ver { margin-top: auto; padding-top: .5rem; color: var(--azul); font-weight: 700; }
+.ens a:hover h3 { color: var(--azul); }
+
+/* ---------- Ministerios: tarjetas ---------- */
+.ministerios { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem; }
+@media (max-width: 62rem) { .ministerios { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 38rem) { .ministerios { grid-template-columns: 1fr; } }
+.ministerio { position: relative; background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 1.25rem; padding: 1.75rem 1.6rem 1.6rem; }
+.ministerio::before { content: ""; position: absolute; left: 1.6rem; top: 0; width: 3rem; height: 4px; border-radius: 0 0 3px 3px; background: var(--rojo); }
+.ministerio:nth-child(3n+2)::before { background: var(--azul); }
+.ministerio:nth-child(3n)::before { background: var(--luz); }
+.ministerio h3 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.02em; }
+.ministerio .edad { margin-top: .35rem; font: 700 .78rem var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--azul); }
+.ministerio p:last-child { margin-top: .7rem; color: var(--suave); }
+
+/* ---------- Ofrendas ---------- */
+.ofrendas__intro { text-align: center; max-width: 40rem; margin: 0 auto clamp(2rem, 4vw, 3rem); }
+.ofrendas__intro .antetitulo { justify-content: center; }
+.ofrendas__intro p { margin-top: 1rem; }
+.formas { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.25rem; }
+.forma { background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 1.25rem; padding: 1.6rem; }
+.forma h3 { margin-bottom: .4rem; }
+.datos { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem 1rem; margin-top: 1rem; }
+.datos code { font: 700 1rem var(--sans); background: var(--nube); border: 1px solid var(--linea); border-radius: .6rem; padding: .35rem .7rem; overflow-wrap: anywhere; }
+.copiar { font: 700 .95rem var(--sans); background: transparent; color: var(--azul); border: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 4px; padding: .35rem 0; }
+
+/* ---------- Sedes ---------- */
+.sedes { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.25rem; }
+.sede { position: relative; background: var(--tarjeta); border: 1px solid var(--linea); border-radius: 1.25rem; padding: 1.6rem 1.6rem 1.6rem 4.25rem; }
+.sede::before {
+  content: ""; position: absolute; left: 1.5rem; top: 1.75rem; width: 1.6rem; height: 1.6rem; background: var(--rojo);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z'/%3E%3C/svg%3E") center / contain no-repeat;
+          mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M12 2a7 7 0 0 0-7 7c0 5.2 7 13 7 13s7-7.8 7-13a7 7 0 0 0-7-7zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+.sede h3 { margin-bottom: .35rem; }
+.sede p { color: var(--suave); }
+.sede .horas { color: var(--tinta); font-weight: 700; margin-top: .5rem; }
+.sede a { display: inline-block; margin-top: .75rem; color: var(--azul); font-weight: 700; }
+
+/* ---------- Invitación final (contacto) ---------- */
+.invitacion { position: relative; overflow: hidden; isolation: isolate; text-align: center; }
+.invitacion .haces { inset: -5% -20% auto; height: 110%; }
+.invitacion h2 { max-width: 16ch; margin: 0 auto; text-wrap: balance; }
+.invitacion p { margin: 1.25rem auto 0; max-width: 44ch; color: var(--noche-suave); font-size: 1.1rem; }
+.contacto__datos { margin-top: 2.25rem; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 1rem 1.5rem; }
+.contacto__datos #c-email { color: var(--noche-texto); font-weight: 600; text-underline-offset: 5px; }
+
+/* ---------- Pie ---------- */
+.pie { background: var(--noche-honda); color: var(--noche-texto); padding-block: 2.25rem; border-top: 4px solid transparent; border-image: linear-gradient(90deg, #D12C22, #2F5BEA) 1; }
+.pie__fila { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem 2rem; }
+.pie ul { display: flex; flex-wrap: wrap; gap: .5rem 1.5rem; }
+.pie a { font-weight: 600; text-underline-offset: 4px; }
+.pie small { color: var(--noche-suave); }
+
+/* ---------- Inscripción ---------- */
+.dlg-insc { border: 0; border-radius: 1.5rem; padding: clamp(1.25rem, 4vw, 2rem); width: min(30rem, calc(100% - 1.5rem)); background: var(--papel); color: var(--tinta); }
+.dlg-insc::backdrop { background: rgba(6, 12, 34, .72); }
+.dlg-insc h2 { font-size: clamp(1.5rem, 4vw, 1.9rem); margin-bottom: .35rem; }
+.insc-total { margin-top: 1rem; font-weight: 700; }
+.insc-total:empty { display: none; }
+
+/* ---------- Asistente ---------- */
+.asis-boton {
+  position: fixed; z-index: 40; right: 1rem; bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  display: inline-flex; align-items: center; gap: .5rem; padding: .8rem 1.2rem; border: 0; border-radius: 999px;
+  background: var(--noche); color: var(--noche-texto); font: 700 1rem/1.2 var(--sans); cursor: pointer;
+  box-shadow: 0 10px 30px rgba(6, 12, 34, .35);
+}
+.asis-boton svg { width: 1.25rem; height: 1.25rem; flex: none; color: var(--luz); }
+.asis-panel {
+  position: fixed; z-index: 41; right: 1rem; bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  width: min(23rem, calc(100vw - 2rem)); height: min(32rem, calc(100dvh - 7rem));
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--papel); color: var(--tinta); border: 1px solid var(--linea); border-radius: 1.25rem;
+  box-shadow: 0 16px 44px rgba(6, 12, 34, .4);
+}
+.asis-panel[hidden], .asis-boton[hidden] { display: none; }
+.asis-cabecera { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .8rem 1rem; background: var(--noche); color: var(--noche-texto); }
+.asis-cabecera b { font-family: var(--titulo); font-weight: 800; font-size: 1.1rem; }
+.asis-cerrar { background: transparent; border: 0; color: inherit; font-size: 1.6rem; line-height: 1; padding: .2rem .5rem; cursor: pointer; }
+.asis-cabecera :focus-visible { outline-color: var(--luz); }
+.asis-mensajes { flex: 1; overflow-y: auto; padding: 1rem; display: flex; flex-direction: column; gap: .6rem; }
+.asis-msj { max-width: 85%; padding: .6rem .85rem; border-radius: .9rem; white-space: pre-wrap; overflow-wrap: anywhere; font-size: .98rem; line-height: 1.45; }
+.asis-msj--asistente { align-self: flex-start; background: var(--nube); border-bottom-left-radius: .3rem; }
+.asis-msj--usuario { align-self: flex-end; background: var(--azul); color: var(--azul-texto); border-bottom-right-radius: .3rem; }
+.asis-msj--pensando { color: var(--suave); font-style: italic; }
+.asis-nota { padding: 0 1rem .5rem; font-size: .75rem; color: var(--suave); }
+.asis-form { display: flex; gap: .5rem; padding: .75rem; border-top: 1px solid var(--linea); }
+.asis-form input { flex: 1; min-width: 0; font: inherit; color: var(--tinta); background: var(--tarjeta); border: 1.5px solid var(--linea); border-radius: 999px; padding: .6rem 1rem; }
+.asis-form button { border: 0; border-radius: 999px; padding: .6rem 1.1rem; background: var(--azul); color: var(--azul-texto); font: 700 .95rem var(--sans); cursor: pointer; }
+.asis-form button[disabled] { opacity: .6; cursor: wait; }
+@media (max-width: 30rem) {
+  .asis-panel { left: .5rem; right: .5rem; width: auto; bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px)); height: calc(100dvh - 6.5rem); }
+}
+</style>
+</head>
+<body>
+<a class="saltar" href="#contenido">Saltar al contenido</a>
+
+<header class="barra">
+  <div class="contenedor barra__fila">
+    <a class="marca" href="#inicio" aria-label="Ir al inicio">
+      <svg viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="11" fill="#FFFFFF"/><path d="M20.5 5c-5.6 4.6-8.9 9.6-8.2 15.6.5 4.4 3.3 7.6 6.6 10.2-1.4-3.4-1.5-6.6.2-9.9 1.6-3.2 3.3-6.6 1.4-15.9z" fill="#D12C22"/><path d="M23.6 15.2c3.4 3.4 5.2 7.2 4.4 11.5-.7 3.7-3.8 6.3-8.3 7.6 2.3-2.4 3.4-5.3 3.1-8.8-.2-3.4.6-6.8.8-10.3z" fill="#2F5BEA"/><path d="M27.3 16h1.9v3.4h3.3v1.9h-3.3v6.2h-1.9v-6.2H24v-1.9h3.3z" fill="#D12C22"/></svg>
+      <span id="marca-nombre"></span>
+    </a>
+    <button class="menu-boton" id="menu-boton" aria-expanded="false" aria-controls="menu">Menú</button>
+    <nav class="menu" id="menu" aria-label="Principal">
+      <ul>
+        <li><a href="#quienes">Nosotros</a></li>
+        <li><a href="#eventos">Eventos</a></li>
+        <li><a href="#ensenanzas">Prédicas</a></li>
+        <li><a href="#ministerios">Ministerios</a></li>
+        <li><a href="#ofrendas">Ofrendas</a></li>
+        <li><a href="#contacto">Contacto</a></li>
+      </ul>
+      <a class="boton boton--lampara" id="btn-vivo" target="_blank" rel="noopener">En vivo</a>
+    </nav>
+  </div>
+</header>
+
+<main id="contenido">
+
+  <!-- INICIO: centrado, con haces de luz; los cultos al pie -->
+  <section class="inicio oscura" id="inicio">
+    <div class="haces" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="contenedor">
+      <p class="antetitulo">Centro Familiar de Adoración<span class="ciudad">· Asunción</span></p>
+      <h1 id="h-titulo"></h1>
+      <p class="inicio__bajada" id="h-bajada"></p>
+      <div class="inicio__acciones">
+        <a class="boton boton--lampara" href="#siguiente-paso">Es mi primera vez</a>
+        <a class="boton boton--linea" href="#sedes">Cómo llegar</a>
+      </div>
+      <div class="cultos">
+        <h2 class="cultos__titulo">Nuestros cultos</h2>
+        <dl class="horarios" id="horarios"></dl>
+      </div>
+    </div>
+  </section>
+
+  <!-- CIFRAS -->
+  <section class="cifras" aria-label="La iglesia en números">
+    <div class="contenedor">
+      <ul>
+        <li><b>41</b><span>años de historia</span></li>
+        <li><b>+80</b><span>iglesias en todo el país</span></li>
+        <li><b>2.000</b><span>células que se reúnen cada semana</span></li>
+        <li><b>92.3</b><span>Goradio FM, nuestra radio</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- NOSOTROS Y PASTORA -->
+  <section class="seccion" id="quienes">
+    <div class="contenedor nosotros">
+      <div>
+        <p class="antetitulo">Quiénes somos</p>
+        <h2>Nuestra historia</h2>
+        <p class="nosotros__vision" id="vision"></p>
+        <p class="nosotros__texto suave" id="quienes-texto"></p>
+      </div>
+      <article class="pastor" id="pastores">
+        <div class="pastor__foto" role="img" aria-label="Espacio para la foto de los pastores" id="p-iniciales"></div>
+        <small>Nuestros pastores</small>
+        <p class="nombres" id="p-nombres"></p>
+        <p id="p-texto"></p>
+      </article>
+    </div>
+  </section>
+
+  <!-- VERSÍCULO -->
+  <section class="versiculo" aria-label="Versículo">
+    <div class="contenedor">
+      <blockquote>“Ahora permanecen la fe, la esperanza y el amor, estos tres; pero el mayor de ellos es el amor.”</blockquote>
+      <cite>1 Corintios 13:13</cite>
+    </div>
+  </section>
+
+  <!-- EVENTOS -->
+  <section class="seccion seccion--nube" id="eventos">
+    <div class="contenedor">
+      <div class="cabecera">
+        <div>
+          <p class="antetitulo">Agenda</p>
+          <h2>Próximos eventos</h2>
+        </div>
+      </div>
+      <p class="aviso" id="ev-pago" role="status"></p>
+      <div class="eventos" id="ev-lista"></div>
+    </div>
+  </section>
+
+  <!-- SIGUIENTE PASO Y ORACIÓN -->
+  <section class="seccion oscura pasos-seccion" id="siguiente-paso">
+    <div class="contenedor pasos">
+      <div class="paso">
+        <p class="antetitulo">Tu siguiente paso</p>
+        <h2>¿Es tu primera vez?</h2>
+        <p id="paso-texto"></p>
+        <a class="boton boton--lampara" id="paso-boton" target="_blank" rel="noopener">Quiero dar mi siguiente paso</a>
+        <form id="paso-form" hidden novalidate>
+          <label class="campo"><span>Tu nombre</span><input type="text" id="pf-nombre" autocomplete="name" maxlength="120"></label>
+          <label class="campo"><span>Tu WhatsApp o teléfono</span><input type="tel" id="pf-telefono" autocomplete="tel" maxlength="40"></label>
+          <label class="campo"><span>Tu correo (opcional)</span><input type="email" id="pf-email" autocomplete="email" maxlength="160"></label>
+          <div class="trampa" aria-hidden="true"><label>No completar este campo<input type="text" id="pf-web" tabindex="-1" autocomplete="off"></label></div>
+          <label class="check"><input type="checkbox" id="pf-consent"><span>Acepto que la iglesia guarde mis datos para contactarme y acompañarme. Puedo pedir que los borren cuando quiera.</span></label>
+          <button class="boton boton--lampara" type="submit" id="pf-enviar">Quiero dar mi siguiente paso</button>
+          <p class="aviso" id="pf-aviso" role="status" aria-live="polite"></p>
+        </form>
+      </div>
+      <div class="oracion">
+        <h3>¿Necesitas oración?</h3>
+        <p class="suave">Cuéntanos tu petición. Nuestro equipo de intercesión orará por ti.</p>
+        <form id="or-form" novalidate>
+          <label class="campo"><span>Tu nombre (opcional)</span><input type="text" id="or-nombre" autocomplete="given-name" maxlength="120"></label>
+          <label class="campo"><span>Tu petición</span><textarea id="or-texto" maxlength="2000"></textarea></label>
+          <div class="trampa" aria-hidden="true"><label>No completar este campo<input type="text" id="or-web" tabindex="-1" autocomplete="off"></label></div>
+          <div class="fila-botones">
+            <button class="boton boton--marea" type="submit" id="or-guardar" hidden>Enviar petición</button>
+            <a class="boton boton--marea" id="or-enviar" target="_blank" rel="noopener">Enviar por WhatsApp</a>
+          </div>
+          <p class="aviso" id="or-aviso" role="status" aria-live="polite"></p>
+          <p class="nota-datos" id="or-nota" hidden>Tu petición solo la ve el equipo de la iglesia.</p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRÉDICAS (se llenan solas desde YouTube; la sección se oculta mientras no haya) -->
+  <section class="seccion" id="ensenanzas">
+    <div class="contenedor">
+      <div class="cabecera">
+        <div>
+          <p class="antetitulo">Palabra</p>
+          <h2>Prédicas recientes</h2>
+        </div>
+        <a class="boton boton--linea" id="ens-todas" target="_blank" rel="noopener">Ver todas en YouTube</a>
+      </div>
+      <ul class="ens" id="ens-lista"></ul>
+    </div>
+  </section>
+
+  <!-- MINISTERIOS -->
+  <section class="seccion seccion--nube" id="ministerios">
+    <div class="contenedor">
+      <div class="cabecera">
+        <div>
+          <p class="antetitulo">Ministerios</p>
+          <h2>Hay un lugar para ti</h2>
+        </div>
+      </div>
+      <div class="ministerios" id="min-lista"></div>
+    </div>
+  </section>
+
+  <!-- OFRENDAS -->
+  <section class="seccion" id="ofrendas">
+    <div class="contenedor">
+      <div class="ofrendas__intro">
+        <p class="antetitulo">Generosidad</p>
+        <h2>¿Deseas ofrendar?</h2>
+        <p class="suave" id="of-texto"></p>
+      </div>
+      <div class="formas" id="of-formas"></div>
+    </div>
+  </section>
+
+  <!-- SEDES -->
+  <section class="seccion seccion--nube" id="sedes">
+    <div class="contenedor">
+      <div class="cabecera">
+        <div>
+          <p class="antetitulo">Dónde estamos</p>
+          <h2>Te esperamos</h2>
+        </div>
+      </div>
+      <div class="sedes" id="sedes-lista"></div>
+    </div>
+  </section>
+
+  <!-- INVITACIÓN FINAL Y CONTACTO -->
+  <section class="seccion oscura invitacion" id="contacto">
+    <div class="haces" aria-hidden="true"><span></span><span></span><span></span></div>
+    <div class="contenedor">
+      <p class="antetitulo">Contacto</p>
+      <h2>Hay un lugar para ti en esta familia</h2>
+      <p>Escríbenos con cualquier pregunta. Te respondemos por WhatsApp o por correo.</p>
+      <div class="contacto__datos">
+        <a class="boton boton--lampara" id="c-whatsapp" target="_blank" rel="noopener">Escríbenos por WhatsApp</a>
+        <a id="c-email"></a>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <div class="contenedor pie__fila">
+    <small id="pie-copy"></small>
+    <ul id="pie-redes"></ul>
+  </div>
+</footer>
+
+<!-- INSCRIPCIÓN A EVENTOS (aparece en los eventos con inscripción, si la iglesia está conectada a la base de datos) -->
+<dialog class="dlg-insc" id="dlg-insc" aria-labelledby="insc-titulo">
+  <form id="insc-form" novalidate>
+    <h2 id="insc-titulo">Inscripción</h2>
+    <p class="suave" id="insc-sub"></p>
+    <label class="campo"><span>Tu nombre</span><input type="text" id="insc-nombre" autocomplete="name" maxlength="120"></label>
+    <label class="campo"><span>Tu WhatsApp o teléfono</span><input type="tel" id="insc-telefono" autocomplete="tel" maxlength="40"></label>
+    <label class="campo"><span>Tu correo (opcional)</span><input type="email" id="insc-email" autocomplete="email" maxlength="160"></label>
+    <label class="campo"><span>¿Cuántas personas vienen contigo?</span><select id="insc-acomp"></select></label>
+    <p class="insc-total" id="insc-total" aria-live="polite"></p>
+    <div class="trampa" aria-hidden="true"><label>No completar este campo<input type="text" id="insc-web" tabindex="-1" autocomplete="off"></label></div>
+    <label class="check"><input type="checkbox" id="insc-consent"><span>Acepto que la iglesia guarde mis datos para esta inscripción y para avisarme sobre el evento.</span></label>
+    <p class="aviso" id="insc-aviso" role="status" aria-live="polite"></p>
+    <div class="fila-botones">
+      <button class="boton boton--marea" type="submit" id="insc-enviar">Inscribirme</button>
+      <button class="boton boton--linea" type="button" id="insc-cerrar">Cerrar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- ASISTENTE (aparece si la iglesia está conectada a la base de datos) -->
+<button class="asis-boton" id="asis-boton" type="button" aria-expanded="false" aria-controls="asis-panel" hidden>
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4 3h16a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H9.5L5 21v-4H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 6.5a1.5 1.5 0 1 0 0 .01zm5 0a1.5 1.5 0 1 0 0 .01zm5 0a1.5 1.5 0 1 0 0 .01z"/></svg>
+  <span>¿Tienes una pregunta?</span>
+</button>
+<section class="asis-panel" id="asis-panel" aria-label="Asistente de la iglesia" hidden>
+  <div class="asis-cabecera">
+    <b>Asistente de la iglesia</b>
+    <button class="asis-cerrar" id="asis-cerrar" type="button" aria-label="Cerrar el asistente">×</button>
+  </div>
+  <div class="asis-mensajes" id="asis-mensajes" aria-live="polite"></div>
+  <p class="asis-nota">Respuestas automáticas. No guardamos esta conversación.</p>
+  <form class="asis-form" id="asis-form">
+    <input type="text" id="asis-texto" maxlength="600" placeholder="Escribe tu pregunta" aria-label="Tu pregunta" autocomplete="off">
+    <button type="submit" id="asis-enviar">Enviar</button>
+  </form>
+</section>
+
+<script>
+/* Los datos llegan desde clientes/<cliente>.json; los inserta agente/construir.mjs */
+const IGLESIA = /*__DATOS__*/null;
+
+/*__FUNCIONES__*/
+</script>
+</body>
+</html>
