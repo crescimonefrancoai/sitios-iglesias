@@ -1,0 +1,124 @@
+{
+  "nombre": "Iglesia CFA",
+  "prueba": true,
+  "diseno": "cfa",
+  "youtube": "@iglesiacfa",
+  "youtubeCriterio": "Solo prédicas y enseñanzas completas de los cultos. No incluir clips cortos, anuncios, programas de radio ni transmisiones de música sin mensaje.",
+  "titulo": "Una familia que adora a Dios",
+  "bajada": "Te esperamos este fin de semana para adorar juntos, crecer en la Palabra y encontrar tu lugar.",
+  "whatsapp": "5491150163879",
+  "email": "digitaleklesic@gmail.com",
+  "urlVivo": "https://www.youtube.com/@iglesiacfa/live",
+  "urlEnsenanzas": "https://www.youtube.com/@iglesiacfa/videos",
+  "horarios": [
+    {
+      "dia": "Sábados",
+      "hora": "19:00 hs",
+      "detalle": "Culto general"
+    },
+    {
+      "dia": "Domingos",
+      "hora": "10:00 hs",
+      "detalle": "Culto general"
+    },
+    {
+      "dia": "Domingos",
+      "hora": "19:00 hs",
+      "detalle": "Culto general"
+    }
+  ],
+  "vision": "Vidas transformadas con el amor de Jesús en todo Paraguay y las naciones.",
+  "quienes": "El Centro Familiar de Adoración nació en Asunción hace 41 años. Desde entonces creció hasta tener templos en todo el país, miles de células que se reúnen cada semana en las casas, comedores, una radio y consejería para quien lo necesite. Pero lo más importante sigue siendo lo mismo: personas que encuentran aquí a Jesús y una familia.",
+  "pastores": {
+    "nombres": "Emilio y Bethany Abreu",
+    "iniciales": "EB",
+    "texto": "El pastor Emilio Abreu fundó la Iglesia CFA y su legado sigue vivo en cada vida transformada. La pastora Bethany Abreu guía hoy a esta familia como pastora principal, con el amor de 1 Corintios 13."
+  },
+  "pasoTexto": "Si es tu primera vez o quieres volver a empezar con Jesús, no tienes que hacerlo solo. Escríbenos y alguien del equipo te acompaña en tus primeros pasos y te ayuda a encontrar una célula cerca de tu casa.",
+  "ensenanzas": [],
+  "eventos": [
+    {
+      "titulo": "Noche de adoración",
+      "fecha": "2026-11-14",
+      "hora": "19:00 hs",
+      "lugar": "Sede central"
+    },
+    {
+      "titulo": "Culto de Navidad",
+      "fecha": "2026-12-20",
+      "hora": "19:00 hs",
+      "lugar": "Sede central"
+    },
+    {
+      "titulo": "Culto de fin de año",
+      "fecha": "2026-12-31",
+      "hora": "21:00 hs",
+      "lugar": "Sede central"
+    }
+  ],
+  "ministerios": [
+    {
+      "nombre": "Células",
+      "edad": "En casas de toda la ciudad",
+      "texto": "Grupos pequeños que se reúnen cada semana para orar, compartir la Palabra y cuidarse unos a otros."
+    },
+    {
+      "nombre": "Jóvenes",
+      "edad": "Adolescentes y jóvenes",
+      "texto": "Reuniones, música y amistad para una generación que quiere vivir su fe de verdad."
+    },
+    {
+      "nombre": "Niños",
+      "edad": "Durante los cultos",
+      "texto": "Un espacio seguro donde los más chicos aprenden de Jesús mientras sus padres están en el culto."
+    },
+    {
+      "nombre": "Mujeres",
+      "edad": "Congreso Diamante",
+      "texto": "Encuentros para que cada mujer descubra su valor en Cristo y crezca acompañada."
+    },
+    {
+      "nombre": "Acción social",
+      "edad": "Comedores",
+      "texto": "Comedores y ayuda concreta para las familias que más lo necesitan, en todo el país."
+    },
+    {
+      "nombre": "Consejería",
+      "edad": "Atención psicológica",
+      "texto": "Profesionales que escuchan y acompañan a quien atraviesa un momento difícil."
+    }
+  ],
+  "ofrendas": {
+    "texto": "Cada ofrenda sostiene la obra de la iglesia y llega a las familias que más lo necesitan. Damos con alegría y sin presión.",
+    "mercadopago": "https://linktr.ee/IglesiaCfaCentral",
+    "alias": "datos.de.ejemplo",
+    "titular": "Iglesia CFA",
+    "banco": "Datos de ejemplo"
+  },
+  "sedes": [
+    {
+      "nombre": "Sede central",
+      "direccion": "Olegario Andrade esq. Soriano González, Asunción",
+      "horarios": "Sábados 19:00 hs · Domingos 10:00 y 19:00 hs"
+    },
+    {
+      "nombre": "Iglesias CFA en todo el país",
+      "direccion": "Iglesia Centro Familiar de Adoración",
+      "horarios": "Escríbenos y te decimos cuál te queda más cerca"
+    }
+  ],
+  "redes": [
+    {
+      "nombre": "Instagram",
+      "url": "https://www.instagram.com/iglesiacfa/"
+    },
+    {
+      "nombre": "YouTube",
+      "url": "https://www.youtube.com/@iglesiacfa"
+    },
+    {
+      "nombre": "Goradio 92.3 FM",
+      "url": "https://goradio.com.py/"
+    }
+  ]
+}
