@@ -37,6 +37,13 @@
   "pasoTexto": "Si es tu primera vez o quieres volver a empezar con Jesús, no tienes que hacerlo solo. Escríbenos y alguien del equipo te acompaña en tus primeros pasos y te ayuda a encontrar una célula cerca de tu casa.",
   "ensenanzas": [
     {
+      "titulo": "Amados de verdad",
+      "pastor": "Pastor Carlos de la Sobera",
+      "fecha": "2026-11-08",
+      "resumen": "Una prédica para ti que lleva por título \"Amados de verdad\".",
+      "url": "https://www.youtube.com/watch?v=KT9s2qO79v0"
+    },
+    {
       "titulo": "Amados de verdad (parte 1)",
       "pastor": "Pastor Carlos de la Sobera",
       "fecha": "2026-11-08",
@@ -112,13 +119,6 @@
       "fecha": "2026-10-26",
       "resumen": "Una prédica que te habla sobre vivir una fe valiente.",
       "url": "https://www.youtube.com/watch?v=_6BCdIx4W6c"
-    },
-    {
-      "titulo": "Así vendrá",
-      "pastor": "Pastor Joshua Abreu",
-      "fecha": "2026-10-19",
-      "resumen": "Te invita a esperar con esperanza el regreso de Jesús, viviendo firme con el poder del Espíritu Santo.",
-      "url": "https://www.youtube.com/watch?v=SHcsrRy2P2A"
     }
   ],
   "eventos": [
