@@ -37,6 +37,20 @@
   "pasoTexto": "Si es tu primera vez o quieres volver a empezar con Jesús, no tienes que hacerlo solo. Escríbenos y alguien del equipo te acompaña en tus primeros pasos y te ayuda a encontrar una célula cerca de tu casa.",
   "ensenanzas": [
     {
+      "titulo": "Amados de verdad (parte 1)",
+      "pastor": "Pastor Carlos de la Sobera",
+      "fecha": "2026-11-08",
+      "resumen": "Una prédica del Pastor Carlos de la Sobera sobre lo que significa ser amados de verdad.",
+      "url": "https://www.youtube.com/watch?v=cu4CFMlLnVc"
+    },
+    {
+      "titulo": "Amados de verdad",
+      "pastor": "Pastor Carlos de la Sobera",
+      "fecha": "2026-11-08",
+      "resumen": "Una prédica del Pastor Carlos de la Sobera sobre lo que significa ser amados de verdad.",
+      "url": "https://www.youtube.com/watch?v=iA7oVOHAAlk"
+    },
+    {
       "titulo": "Voy a preparar un lugar",
       "pastor": "Pastor Joshua Abreu",
       "fecha": "2026-11-02",
@@ -105,20 +119,6 @@
       "fecha": "2026-10-19",
       "resumen": "Te invita a esperar con esperanza el regreso de Jesús, viviendo firme con el poder del Espíritu Santo.",
       "url": "https://www.youtube.com/watch?v=SHcsrRy2P2A"
-    },
-    {
-      "titulo": "Jesucristo es superior",
-      "pastor": "Pastor Paolo Lacota",
-      "fecha": "2026-10-18",
-      "resumen": "Con la vida de Pablo, descubre que en Cristo estás completo y que toda tu vida puede reflejar su amor con excelencia.",
-      "url": "https://www.youtube.com/watch?v=q5-cPxsgLS0"
-    },
-    {
-      "titulo": "Cuando la vida te exprime",
-      "pastor": "Pastor Joshua Abreu",
-      "fecha": "2026-10-11",
-      "resumen": "Con la vida de Moisés, descubre que la presión revela tu interior y que la clave es permanecer en Jesús y en su gracia.",
-      "url": "https://www.youtube.com/watch?v=oxxhT6Mnnfs"
     }
   ],
   "eventos": [
